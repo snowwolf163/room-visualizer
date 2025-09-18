@@ -16,7 +16,7 @@ Visit:
 3. Open http://localhost:5173
 
 ## Run locally from source (requires Node)
-   bash
-   npm install
-   npm run dev
+```bash
+npm install
+npm run dev
 # open http://localhost:5173
