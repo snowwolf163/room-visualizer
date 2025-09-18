@@ -6,7 +6,7 @@ Course/Section, Course Offering Id, Start Date, End Date, Days Met, Start Time, 
 Everything is processed in the browser (no data uploaded).
 
 ## Use online (recommended)
-Visit: https://snowwolf163.github.io
+Visit: https://snowwolf163.github.io/room-visualizer/
 
 ## Run locally without setup
 1. Unzip `dist/`
