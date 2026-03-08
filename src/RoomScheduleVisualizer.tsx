@@ -110,27 +110,42 @@ function parseExcelDate(v: any): Date | null {
   return null;
 }
 
-function parseTimeOnDate(date: Date, timeStr: string): Date {
-  // Accept formats like "12:00 PM", "2:50 PM", "14:30", "2 PM"
-  const s = String(timeStr).trim();
-  const fmts = ["h:mm a", "h a", "HH:mm", "H:mm", "h.mm a"]; // include a few loose formats
-  for (const f of fmts) {
-    const d = parse(s, f, date);
-    if (!isNaN(d.getTime())) return d;
+function parseTimeOnDate(date: Date, timeValue: string | number): Date {
+  const d = new Date(date);
+
+  // Handle Excel numeric time fractions, e.g. 0.5 = 12:00 PM
+  if (typeof timeValue === "number" && !isNaN(timeValue)) {
+    const totalMinutes = Math.round(timeValue * 24 * 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    d.setHours(hours, minutes, 0, 0);
+    return d;
   }
-  // as last resort, split manually
-  const d2 = new Date(date);
+
+  const s = String(timeValue).trim();
+
+  // Accept formats like "12:00 PM", "2:50 PM", "14:30", "2 PM"
+  const fmts = ["h:mm a", "h a", "HH:mm", "H:mm", "h.mm a"];
+  for (const f of fmts) {
+    const parsed = parse(s, f, date);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+
+  // Fallback manual parsing
   const m = s.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);
   if (m) {
     let h = parseInt(m[1], 10);
     const min = m[2] ? parseInt(m[2], 10) : 0;
     const ampm = m[3]?.toUpperCase();
+
     if (ampm === "PM" && h < 12) h += 12;
     if (ampm === "AM" && h === 12) h = 0;
-    d2.setHours(h, min, 0, 0);
-    return d2;
+
+    d.setHours(h, min, 0, 0);
+    return d;
   }
-  return d2; // may be invalid; caller should check
+
+  return d;
 }
 
 function normalizeDays(daysMet: string): string[] {
@@ -364,6 +379,16 @@ export default function RoomScheduleVisualizer() {
 			<Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()} className="gap-2">
 			  <Upload className="w-4 h-4" /> Upload .xlsx
 			</Button>
+			
+			<a
+			  href={`${import.meta.env.BASE_URL}sample-room-visualizer.xlsx`}
+			  download
+			  className="inline-flex items-center rounded-md border px-3 py-2 text-sm hover:bg-muted"
+			>
+			  <Download className="w-4 h-4 mr-2" />
+			  Download Sample File
+			</a>
+			
 			<div className="ml-auto flex items-center gap-2">
 			  <Button variant="outline" size="sm" onClick={downloadPNG} disabled={!sessions.length} className="gap-2">
 				<Download className="w-4 h-4" /> Export PNG
@@ -415,11 +440,9 @@ export default function RoomScheduleVisualizer() {
 	  )}
 
 	  {!rows.length && (
-		<div className="text-sm text-muted-foreground flex items-center gap-2">
-		  <CalendarIcon className="w-4 h-4" /> Upload your .xlsx to begin. Example row format:
-		  <code className="bg-muted px-2 py-1 rounded">
-			MMET 320/502 LAB, 25286, 8/25/2025, 12/16/2025, T, 12:00 PM, 2:50 PM, A, THOM 107AC, 14, Scheduled, 202531
-		  </code>
+		<div className="text-sm text-muted-foreground flex flex-wrap items-center gap-2">
+		  <CalendarIcon className="w-4 h-4" />
+		  Upload your .xlsx file to begin, or download the sample file to see the correct format.
 		</div>
 	  )}
 
