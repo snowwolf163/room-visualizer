@@ -2,12 +2,10 @@
   "name": "room-visualizer",
   "version": "0.0.0",
   "private": true,
-  "homepage": "https://snowwolf163.github.io/room-visualizer",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && gh-pages -d dist --repo https://github.com/snowwolf163/room-visualizer.git --branch gh-pages"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.2.6",
