@@ -353,154 +353,171 @@ export default function RoomScheduleVisualizer() {
 
 
   return (
-    <div className="mx-auto max-w-[1200px] p-6 space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Room Schedule Visualizer</h1>
+  <div className="h-full w-full flex flex-col">
+	<div className="shrink-0 p-4 space-y-4">
+	  <h1 className="text-2xl font-semibold tracking-tight">Room Schedule Visualizer</h1>
 
-      <Card>
-        <CardContent className="p-4 flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <Input type="file" accept=".xlsx" ref={fileRef} onChange={onFileChange} className="max-w-sm" />
-            <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()} className="gap-2">
-              <Upload className="w-4 h-4"/> Upload .xlsx
-            </Button>
-            <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={downloadPNG} disabled={!sessions.length} className="gap-2">
-                <Download className="w-4 h-4"/> Export PNG
-              </Button>
-            </div>
-          </div>
+	  <Card>
+		<CardContent className="p-4 flex flex-col gap-3">
+		  <div className="flex flex-wrap items-center gap-3">
+			<Input type="file" accept=".xlsx" ref={fileRef} onChange={onFileChange} className="max-w-sm" />
+			<Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()} className="gap-2">
+			  <Upload className="w-4 h-4" /> Upload .xlsx
+			</Button>
+			<div className="ml-auto flex items-center gap-2">
+			  <Button variant="outline" size="sm" onClick={downloadPNG} disabled={!sessions.length} className="gap-2">
+				<Download className="w-4 h-4" /> Export PNG
+			  </Button>
+			</div>
+		  </div>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="w-64">
-              <label className="text-sm text-muted-foreground">Room</label>
-              <Select value={room} onValueChange={setRoom}>
-                <SelectTrigger>
-                  <SelectValue placeholder={rooms.length ? "Select a room" : "Upload a file first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {rooms.map(r => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+		  <div className="flex flex-wrap items-center gap-4">
+			<div className="w-64">
+			  <label className="text-sm text-muted-foreground">Room</label>
+			  <Select value={room} onValueChange={setRoom}>
+				<SelectTrigger>
+				  <SelectValue placeholder={rooms.length ? "Select a room" : "Upload a file first"} />
+				</SelectTrigger>
+				<SelectContent>
+				  {rooms.map(r => (
+					<SelectItem key={r} value={r}>{r}</SelectItem>
+				  ))}
+				</SelectContent>
+			  </Select>
+			</div>
 
-            <div className="flex items-center gap-3">
-              <div className="w-48">
-                <label className="text-sm text-muted-foreground">Visible time: start (hour)</label>
-                <Slider min={0} max={23} step={1} value={[minHour]} onValueChange={v => setMinHour(v[0])} />
-                <div className="text-xs">Auto min: {autoMinHour}:00</div>
-              </div>
-              <div className="w-48">
-                <label className="text-sm text-muted-foreground">Visible time: end (hour)</label>
-                <Slider min={1} max={24} step={1} value={[maxHour]} onValueChange={v => setMaxHour(v[0])} />
-                <div className="text-xs">Auto max: {autoMaxHour}:00</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+			<div className="flex items-center gap-3">
+			  <div className="w-48">
+				<label className="text-sm text-muted-foreground">Visible time: start (hour)</label>
+				<Slider min={0} max={23} step={1} value={[minHour]} onValueChange={v => setMinHour(v[0])} />
+				<div className="text-xs">Auto min: {autoMinHour}:00</div>
+			  </div>
+			  <div className="w-48">
+				<label className="text-sm text-muted-foreground">Visible time: end (hour)</label>
+				<Slider min={1} max={24} step={1} value={[maxHour]} onValueChange={v => setMaxHour(v[0])} />
+				<div className="text-xs">Auto max: {autoMaxHour}:00</div>
+			  </div>
+			</div>
+		  </div>
+		</CardContent>
+	  </Card>
 
-      {/* Legend */}
-      {instructors.length > 0 && (
-        <div className="flex flex-wrap gap-3 items-center">
-          <span className="text-sm text-muted-foreground">Instructors:</span>
-          {instructors.map(name => (
-            <div key={name} className="flex items-center gap-2 text-sm">
-              <span className="inline-block w-3 h-3 rounded" style={{ background: colorByInstructor.get(name) }} />
-              <span>{name || "Unknown"}</span>
-            </div>
-          ))}
-        </div>
-      )}
+	  {instructors.length > 0 && (
+		<div className="flex flex-wrap gap-3 items-center">
+		  <span className="text-sm text-muted-foreground">Instructors:</span>
+		  {instructors.map(name => (
+			<div key={name} className="flex items-center gap-2 text-sm">
+			  <span className="inline-block w-3 h-3 rounded" style={{ background: colorByInstructor.get(name) }} />
+			  <span>{name || "Unknown"}</span>
+			</div>
+		  ))}
+		</div>
+	  )}
 
-      {/* Schedule Grid */}
-      <div className="overflow-auto rounded-2xl border bg-white shadow-sm">
-        <svg id="schedule-svg" width={width} height={height} className="block">
-          {/* Column headers (dates) */}
-          {dateColumns.map((d, i) => {
-            const x = labelW + gutter + i * (colWidth + gutter);
-            return (
-              <g key={d}>
-                <text x={x + colWidth / 2} y={20} textAnchor="middle" fontSize={12} fontWeight={600} fill="#111">
-                  {format(new Date(d), "EEE MMM d")}
-                </text>
-              </g>
-            );
-          })}
+	  {!rows.length && (
+		<div className="text-sm text-muted-foreground flex items-center gap-2">
+		  <CalendarIcon className="w-4 h-4" /> Upload your .xlsx to begin. Example row format:
+		  <code className="bg-muted px-2 py-1 rounded">
+			MMET 320/502 LAB, 25286, 8/25/2025, 12/16/2025, T, 12:00 PM, 2:50 PM, A, THOM 107AC, 14, Scheduled, 202531
+		  </code>
+		</div>
+	  )}
 
-          {/* Hour grid lines and labels */}
-          {hourTicks.map((h, idx) => {
-            const y = headerH + gutter + (h - effectiveMin) * hourHeight;
-            return (
-              <g key={idx}>
-                {/* hour label */}
-                <text x={labelW - 8} y={y + 4} textAnchor="end" fontSize={11} fill="#555">
-                  {format(new Date(2020, 0, 1, h, 0), "h a")}
-                </text>
-                {/* grid line */}
-                <line x1={labelW} y1={y} x2={width - gutter} y2={y} stroke="#e5e7eb" />
-              </g>
-            );
-          })}
+	  <p className="text-xs text-muted-foreground">
+		Tip: We auto-detect days like M, T, W, R (Thu), F, S, U and also parse Th/Tu/Sa/Su. Only rows with a Room and valid Start/End dates & times are rendered.
+	  </p>
+	</div>
 
-          {/* Vertical dividers */}
-          {dateColumns.map((d, i) => {
-            const x = labelW + gutter + i * (colWidth + gutter);
-            return (
-              <g key={`v-${d}`}>
-                <rect x={x} y={headerH + gutter} width={colWidth} height={(effectiveMax - effectiveMin) * hourHeight} fill={i % 2 === 0 ? "#fafafa" : "#ffffff"} />
-                <line x1={x} y1={headerH + gutter} x2={x} y2={height - gutter} stroke="#e5e7eb" />
-              </g>
-            );
-          })}
+	<div className="flex-1 min-h-0 px-4 pb-4">
+	  <div className="h-full w-full overflow-auto rounded-2xl border bg-white shadow-sm">
+		<svg id="schedule-svg" width={width} height={height} className="block min-w-full">
+		  {/* Column headers (dates) */}
+		  {dateColumns.map((d, i) => {
+			const x = labelW + gutter + i * (colWidth + gutter);
+			return (
+			  <g key={d}>
+				<text x={x + colWidth / 2} y={20} textAnchor="middle" fontSize={12} fontWeight={600} fill="#111">
+				  {format(new Date(d), "EEE MMM d")}
+				</text>
+			  </g>
+			);
+		  })}
 
-          {/* Session blocks */}
-          {dateColumns.map((d, i) => {
-            const x = labelW + gutter + i * (colWidth + gutter);
-            const list = lanesByDate.get(d) ?? [];
-            return (
-              <g key={`blocks-${d}`}>
-                {list.map((s, idx) => {
-                  const y1 = yFor(s.start);
-                  const y2 = yFor(s.end);
-                  const h = y2 - y1;
-                  const lanes = s.lanes;
-                  const lane = s.lane;
-                  const w = (colWidth - 6) / lanes;
-                  const bx = x + 3 + lane * w;
-                  return (
-                    <g key={idx}>
-                      <rect x={bx} y={y1 + 2} rx={8} ry={8} width={w - 6} height={Math.max(14, h - 4)} fill={s.color} opacity={0.85} />
-                      <text x={bx + 8} y={y1 + 18} fontSize={11} fill="#111" style={{ pointerEvents: "none" }}>
-                        {s.courseSection}
-                      </text>
-                      <text x={bx + 8} y={y1 + 32} fontSize={10} fill="#111" style={{ pointerEvents: "none" }}>
-                        {s.instructor} · {format(s.start, "h:mm a")}–{format(s.end, "h:mm a")}
-                      </text>
-                    </g>
-                  );
-                })}
-              </g>
-            );
-          })}
+		  {/* Hour grid lines and labels */}
+		  {hourTicks.map((h, idx) => {
+			const y = headerH + gutter + (h - effectiveMin) * hourHeight;
+			return (
+			  <g key={idx}>
+				<text x={labelW - 8} y={y + 4} textAnchor="end" fontSize={11} fill="#555">
+				  {format(new Date(2020, 0, 1, h, 0), "h a")}
+				</text>
+				<line x1={labelW} y1={y} x2={width - gutter} y2={y} stroke="#e5e7eb" />
+			  </g>
+			);
+		  })}
 
-          {/* Axis titles */}
-          <text x={labelW / 2} y={16} textAnchor="middle" fontSize={12} fill="#6b7280">Time</text>
-          <text x={width - 60} y={16} textAnchor="end" fontSize={12} fill="#6b7280" className="select-none">Dates</text>
-        </svg>
-      </div>
+		  {/* Vertical dividers */}
+		  {dateColumns.map((d, i) => {
+			const x = labelW + gutter + i * (colWidth + gutter);
+			return (
+			  <g key={`v-${d}`}>
+				<rect
+				  x={x}
+				  y={headerH + gutter}
+				  width={colWidth}
+				  height={(effectiveMax - effectiveMin) * hourHeight}
+				  fill={i % 2 === 0 ? "#fafafa" : "#ffffff"}
+				/>
+				<line x1={x} y1={headerH + gutter} x2={x} y2={height - gutter} stroke="#e5e7eb" />
+			  </g>
+			);
+		  })}
 
-      {!rows.length && (
-        <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <CalendarIcon className="w-4 h-4"/> Upload your .xlsx to begin. Example row format:
-          <code className="bg-muted px-2 py-1 rounded">MMET 320/502 LAB, 25286, 8/25/2025, 12/16/2025, T, 12:00 PM, 2:50 PM, A, THOM 107AC, 14, Scheduled, 202531</code>
-        </div>
-      )}
+		  {/* Session blocks */}
+		  {dateColumns.map((d, i) => {
+			const x = labelW + gutter + i * (colWidth + gutter);
+			const list = lanesByDate.get(d) ?? [];
+			return (
+			  <g key={`blocks-${d}`}>
+				{list.map((s, idx) => {
+				  const y1 = yFor(s.start);
+				  const y2 = yFor(s.end);
+				  const h = y2 - y1;
+				  const lanes = s.lanes;
+				  const lane = s.lane;
+				  const w = (colWidth - 6) / lanes;
+				  const bx = x + 3 + lane * w;
+				  return (
+					<g key={idx}>
+					  <rect
+						x={bx}
+						y={y1 + 2}
+						rx={8}
+						ry={8}
+						width={w - 6}
+						height={Math.max(14, h - 4)}
+						fill={s.color}
+						opacity={0.85}
+					  />
+					  <text x={bx + 8} y={y1 + 18} fontSize={11} fill="#111" style={{ pointerEvents: "none" }}>
+						{s.courseSection}
+					  </text>
+					  <text x={bx + 8} y={y1 + 32} fontSize={10} fill="#111" style={{ pointerEvents: "none" }}>
+						{s.instructor} · {format(s.start, "h:mm a")}–{format(s.end, "h:mm a")}
+					  </text>
+					</g>
+				  );
+				})}
+			  </g>
+			);
+		  })}
 
-      <p className="text-xs text-muted-foreground">
-        Tip: We auto-detect days like M, T, W, R (Thu), F, S, U and also parse Th/Tu/Sa/Su. Only rows with a Room and valid Start/End dates & times are rendered.
-      </p>
-    </div>
-  );
+		  {/* Axis titles */}
+		  <text x={labelW / 2} y={16} textAnchor="middle" fontSize={12} fill="#6b7280">Time</text>
+		  <text x={width - 60} y={16} textAnchor="end" fontSize={12} fill="#6b7280" className="select-none">Dates</text>
+		</svg>
+	  </div>
+	</div>
+  </div>
+);
 }

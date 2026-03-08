@@ -1,24 +1,25 @@
 import './index.css'
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import RoomScheduleVisualizer from './RoomScheduleVisualizer'
 import CreditPage from './CreditPage'
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-white">
-        {/* Navigation */}
-        <nav className="p-4 border-b flex gap-4">
+    <BrowserRouter basename="/room-visualizer">
+      <div className="h-screen w-screen flex flex-col bg-white">
+        <nav className="p-4 border-b flex gap-4 shrink-0">
           <Link to="/" className="text-blue-600 hover:underline">Home</Link>
           <Link to="/credits" className="text-blue-600 hover:underline">Credits</Link>
         </nav>
 
-        <Routes>
-          <Route path="/" element={<RoomScheduleVisualizer />} />
-          <Route path="/credits" element={<CreditPage />} />
-        </Routes>
+        <div className="flex-1 min-h-0">
+          <Routes>
+            <Route path="/" element={<RoomScheduleVisualizer />} />
+            <Route path="/credits" element={<CreditPage />} />
+          </Routes>
+        </div>
       </div>
-    </Router>
+    </BrowserRouter>
   )
 }
 
