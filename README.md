@@ -5,6 +5,8 @@ Course/Section, Course Offering Id, Start Date, End Date, Days Met, Start Time, 
 
 Everything is processed in the browser (no data uploaded).
 
+![Deploy](https://github.com/snowwolf163/room-visualizer/actions/workflows/deploy.yml/badge.svg)
+
 ## Use online (recommended)
 Visit: https://snowwolf163.github.io/room-visualizer/
 
@@ -20,5 +22,3 @@ Visit: https://snowwolf163.github.io/room-visualizer/
 npm install
 npm run dev
 # open http://localhost:5173
-
-![Deploy](https://github.com/snowwolf163/room-visualizer/actions/workflows/deploy.yml/badge.svg)
