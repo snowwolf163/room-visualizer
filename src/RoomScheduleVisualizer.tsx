@@ -82,7 +82,6 @@ type SessionInstance = {
   instructor: string;
   courseSection: string;
   room: string;
-  color: string; // assigned by instructor
 };
 
 function parseExcelDate(v: any): Date | null {
@@ -212,21 +211,26 @@ export default function RoomScheduleVisualizer() {
   const [maxHour, setMaxHour] = useState<number>(22); // default 22:00
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const instructors = useMemo(() => distinct(rows.map(r => r.instructor).filter(Boolean)), [rows]);
-  const rooms = useMemo(() => distinct(rows.map(r => r.room).filter(Boolean)).sort(), [rows]);
 
-  const colorByInstructor = useMemo(() => assignColors(instructors), [instructors]);
+  const rooms = useMemo(
+    () => distinct(rows.map(r => r.room).filter(Boolean)).sort(),
+    [rows]
+  );
 
   const sessions: SessionInstance[] = useMemo(() => {
     const out: SessionInstance[] = [];
+
     for (const r of rows) {
       if (!room || r.room === room) {
         const dates = generateOccurrences(r);
+
         for (const d of dates) {
           const start = parseTimeOnDate(d, r.startTime);
           const end = parseTimeOnDate(d, r.endTime);
+
           if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
           if (isAfter(start, end) || isEqual(start, end)) continue;
+
           out.push({
             date: d,
             start,
@@ -234,15 +238,29 @@ export default function RoomScheduleVisualizer() {
             instructor: r.instructor || "Unknown",
             courseSection: r.courseSection || "",
             room: r.room || "",
-            color: colorByInstructor.get(r.instructor || "Unknown")!,
           });
         }
       }
     }
-    // sort by date then start time
-    out.sort((a,b) => a.date.getTime() - b.date.getTime() || a.start.getTime() - b.start.getTime());
+
+    out.sort(
+      (a, b) =>
+        a.date.getTime() - b.date.getTime() ||
+        a.start.getTime() - b.start.getTime()
+    );
+
     return out;
-  }, [rows, room, colorByInstructor]);
+  }, [rows, room]);
+
+  const visibleInstructors = useMemo(
+    () => distinct(sessions.map(s => s.instructor).filter(Boolean)),
+    [sessions]
+  );
+
+  const colorByInstructor = useMemo(
+    () => assignColors(visibleInstructors),
+    [visibleInstructors]
+  );
 
   const dateColumns = useMemo(() => distinct(sessions.map(s => format(s.date, "yyyy-MM-dd"))), [sessions]);
 
@@ -427,12 +445,15 @@ export default function RoomScheduleVisualizer() {
 		</CardContent>
 	  </Card>
 
-	  {instructors.length > 0 && (
+	  {visibleInstructors.length > 0 && (
 		<div className="flex flex-wrap gap-3 items-center">
-		  <span className="text-sm text-muted-foreground">Instructors:</span>
-		  {instructors.map(name => (
+		  <span className="text-sm text-muted-foreground">Instructors in this room:</span>
+		  {visibleInstructors.map(name => (
 			<div key={name} className="flex items-center gap-2 text-sm">
-			  <span className="inline-block w-3 h-3 rounded" style={{ background: colorByInstructor.get(name) }} />
+			  <span
+				className="inline-block w-3 h-3 rounded"
+				style={{ background: colorByInstructor.get(name) }}
+			  />
 			  <span>{name || "Unknown"}</span>
 			</div>
 		  ))}
@@ -519,7 +540,7 @@ export default function RoomScheduleVisualizer() {
 						ry={8}
 						width={w - 6}
 						height={Math.max(14, h - 4)}
-						fill={s.color}
+						fill={colorByInstructor.get(s.instructor) || "#94a3b8"}
 						opacity={0.85}
 					  />
 					  <text x={bx + 8} y={y1 + 18} fontSize={11} fill="#111" style={{ pointerEvents: "none" }}>
