@@ -20,3 +20,5 @@ Visit: https://snowwolf163.github.io/room-visualizer/
 npm install
 npm run dev
 # open http://localhost:5173
+
+![Deploy](https://github.com/snowwolf163/room-visualizer/actions/workflows/deploy.yml/badge.svg)
