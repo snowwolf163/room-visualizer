@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { format, isAfter, isEqual } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
@@ -51,6 +51,9 @@ export default function RoomScheduleVisualizer() {
   const [maxHour, setMaxHour] = useState<number>(22); // default 22:00
   const fileRef = useRef<HTMLInputElement>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null); //tooltip reference
+  //Container ref 
+  const graphContainerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
   
   //Checking validation const
   const [activeTab, setActiveTab] = useState<"schedule" | "validation">("schedule");
@@ -71,7 +74,26 @@ export default function RoomScheduleVisualizer() {
   });
 
   const hoverTimeoutRef = useRef<number | null>(null);
+  
+  //Track container with ResizeObserver
+  useEffect(() => {
+    const el = graphContainerRef.current;
+    if (!el) return;
 
+    const updateWidth = () => {
+      setContainerWidth(el.clientWidth);
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(() => {
+      updateWidth();
+    });
+
+    observer.observe(el);
+
+    return () => observer.disconnect();
+  }, []);
 
   const rooms = useMemo(
     () => distinct(rows.map(r => r.room).filter(Boolean)).sort(),
@@ -454,11 +476,21 @@ export default function RoomScheduleVisualizer() {
 
 
   // ---- Layout constants ----
-  const colWidth = 140;
   const gutter = 16;
   const hourHeight = 50; // px per hour
   const headerH = 32;
   const labelW = 80; // y-axis label width
+  const minColWidth = 140;
+
+  const availableGraphWidth = Math.max(
+    0,
+    containerWidth - labelW - gutter * 2 - gutter * (dateColumns.length - 1)
+  );
+
+  const colWidth =
+    dateColumns.length > 0
+      ? Math.max(minColWidth, Math.floor(availableGraphWidth / dateColumns.length))
+      : minColWidth;
 
   function yFor(date: Date) {
     const minutes = (date.getHours() - effectiveMin) * 60 + date.getMinutes();
@@ -470,7 +502,8 @@ export default function RoomScheduleVisualizer() {
   for (let h = effectiveMin; h <= effectiveMax; h++) hourTicks.push(h);
   
   //Layout const with hour ticks
-  const width = labelW + (colWidth + gutter) * dateColumns.length + gutter;
+  const contentWidth = labelW + gutter + dateColumns.length * colWidth + (dateColumns.length - 1) * gutter + gutter;
+  const width = Math.max(containerWidth, contentWidth);
   const height = headerH + (hourTicks[hourTicks.length - 1] - effectiveMin) * hourHeight + gutter * 2;
 
   // Group sessions by date string for collision handling
@@ -586,7 +619,10 @@ export default function RoomScheduleVisualizer() {
 
     {activeTab === "schedule" && (
       <div className="flex-1 min-h-0 px-4 pb-4">
-        <div className="h-full w-full overflow-auto rounded-2xl border bg-white shadow-sm">
+        <div
+		  ref={graphContainerRef}
+		  className="h-full w-full overflow-auto rounded-2xl border bg-white shadow-sm"
+		>
           <ScheduleSvg
 		    width={width}
 		    height={height}
