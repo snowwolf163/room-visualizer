@@ -476,7 +476,7 @@ export default function RoomScheduleVisualizer() {
 
 
   // ---- Layout constants ----
-  const gutter = 16;
+  const gutter = 8;
   const hourHeight = 50; // px per hour
   const headerH = 32;
   const labelW = 80; // y-axis label width

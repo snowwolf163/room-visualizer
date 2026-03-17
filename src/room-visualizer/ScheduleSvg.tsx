@@ -77,27 +77,34 @@ export default function ScheduleSvg({
             <text x={labelW - 8} y={y + 4} textAnchor="end" fontSize={11} fill="#555">
               {format(new Date(2020, 0, 1, h, 0), "h a")}
             </text>
-            <line x1={labelW} y1={y} x2={width - gutter} y2={y} stroke="#e5e7eb" />
           </g>
         );
       })}
 
-      {/* Vertical dividers */}
-      {dateColumns.map((d, i) => {
-        const x = labelW + gutter + i * (colWidth + gutter);
-        return (
-          <g key={`v-${d}`}>
-            <rect
-              x={x}
-              y={headerH + gutter}
-              width={colWidth}
-              height={height - headerH - gutter * 2}
-              fill={i % 2 === 0 ? "#fafafa" : "#ffffff"}
-            />
-            <line x1={x} y1={headerH + gutter} x2={x} y2={height - gutter} stroke="#e5e7eb" />
-          </g>
-        );
-      })}
+      {/* Column backgrounds and vertical dividers */}
+	  {dateColumns.map((d, i) => {
+		const x = labelW + gutter + i * (colWidth + gutter);
+		const bgWidth = i === dateColumns.length - 1 ? colWidth : colWidth + gutter;
+
+		return (
+		  <g key={`v-${d}`}>
+			<rect
+			  x={x}
+			  y={headerH + gutter}
+			  width={bgWidth}
+			  height={height - headerH - gutter * 2}
+			  fill={i % 2 === 0 ? "#f3f4f6" : "#ffffff"}
+			/>
+			<line
+			  x1={x}
+			  y1={headerH + gutter}
+			  x2={x}
+			  y2={height - gutter}
+			  stroke="#e5e7eb"
+			/>
+		  </g>
+		);
+	  })}
 
       {/* Session blocks */}
       {dateColumns.map((d, i) => {
