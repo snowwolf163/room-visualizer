@@ -23,6 +23,8 @@ import {
   timeRangesOverlap,
   timeToMinutes,
 } from "./room-visualizer/utils";
+import ValidationPanel from "./room-visualizer/ValidationPanel";
+
 
 /**
  * Room Schedule Visualizer
@@ -580,45 +582,12 @@ export default function RoomScheduleVisualizer() {
       )}
 
       {activeTab === "validation" && (
-        <div className="space-y-4">
-          {validationResults.errors.length === 0 && validationResults.infos.length === 0 ? (
-            <div className="text-green-700 font-medium">No error detected!</div>
-          ) : (
-            <>
-              {validationResults.errors.length > 0 && (
-                <div className="space-y-2">
-                  <h2 className="text-lg font-semibold text-red-600">Errors</h2>
-                  <ul className="list-disc pl-6 space-y-1 text-red-600">
-                    {validationResults.errors.map((msg, idx) => (
-                      <li key={idx}>{msg}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {validationResults.infos.length > 0 && (
-                <div className="space-y-2">
-                  <h2 className="text-lg font-semibold">Notices</h2>
-                  <ul className="list-disc pl-6 space-y-1 text-gray-800">
-                    {validationResults.infos.map((msg, idx) => (
-                      <li key={idx}>{msg}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {detectedHeaders.length > 0 && (
-                <div className="space-y-2">
-                  <h2 className="text-lg font-semibold">Detected Headers</h2>
-                  <div className="rounded-md border p-3 text-sm bg-muted/30">
-                    {detectedHeaders.join(", ")}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+		<ValidationPanel
+		  errors={validationResults.errors}
+		  infos={validationResults.infos}
+		  detectedHeaders={detectedHeaders}
+		/>
+	  )}
     </div>
 
     {activeTab === "schedule" && (
