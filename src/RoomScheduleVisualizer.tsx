@@ -24,7 +24,7 @@ import {
   timeToMinutes,
 } from "./room-visualizer/utils";
 import ValidationPanel from "./room-visualizer/ValidationPanel";
-
+import ScheduleSvg from "./room-visualizer/ScheduleSvg";
 
 /**
  * Room Schedule Visualizer
@@ -432,9 +432,6 @@ export default function RoomScheduleVisualizer() {
   const headerH = 32;
   const labelW = 80; // y-axis label width
 
-  const width = labelW + (colWidth + gutter) * dateColumns.length + gutter;
-  const height = headerH + (effectiveMax - effectiveMin) * hourHeight + gutter * 2;
-
   function yFor(date: Date) {
     const minutes = (date.getHours() - effectiveMin) * 60 + date.getMinutes();
     return headerH + gutter + (minutes / 60) * hourHeight;
@@ -443,6 +440,10 @@ export default function RoomScheduleVisualizer() {
   // Build hour ticks
   const hourTicks: number[] = [];
   for (let h = effectiveMin; h <= effectiveMax; h++) hourTicks.push(h);
+  
+  //Layout const with hour ticks
+  const width = labelW + (colWidth + gutter) * dateColumns.length + gutter;
+  const height = headerH + (hourTicks[hourTicks.length - 1] - effectiveMin) * hourHeight + gutter * 2;
 
   // Group sessions by date string for collision handling
   const byDate = new Map<string, SessionInstance[]>();
@@ -593,98 +594,24 @@ export default function RoomScheduleVisualizer() {
     {activeTab === "schedule" && (
       <div className="flex-1 min-h-0 px-4 pb-4">
         <div className="h-full w-full overflow-auto rounded-2xl border bg-white shadow-sm">
-          <svg id="schedule-svg" width={width} height={height} className="block min-w-full">
-            {/* Column headers (dates) */}
-            {dateColumns.map((d, i) => {
-              const x = labelW + gutter + i * (colWidth + gutter);
-              return (
-                <g key={d}>
-                  <text x={x + colWidth / 2} y={20} textAnchor="middle" fontSize={12} fontWeight={600} fill="#111">
-                    {format(new Date(d), "EEE MMM d")}
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* Hour grid lines and labels */}
-            {hourTicks.map((h, idx) => {
-              const y = headerH + gutter + (h - effectiveMin) * hourHeight;
-              return (
-                <g key={idx}>
-                  <text x={labelW - 8} y={y + 4} textAnchor="end" fontSize={11} fill="#555">
-                    {format(new Date(2020, 0, 1, h, 0), "h a")}
-                  </text>
-                  <line x1={labelW} y1={y} x2={width - gutter} y2={y} stroke="#e5e7eb" />
-                </g>
-              );
-            })}
-
-            {/* Vertical dividers */}
-            {dateColumns.map((d, i) => {
-              const x = labelW + gutter + i * (colWidth + gutter);
-              return (
-                <g key={`v-${d}`}>
-                  <rect
-                    x={x}
-                    y={headerH + gutter}
-                    width={colWidth}
-                    height={(effectiveMax - effectiveMin) * hourHeight}
-                    fill={i % 2 === 0 ? "#fafafa" : "#ffffff"}
-                  />
-                  <line x1={x} y1={headerH + gutter} x2={x} y2={height - gutter} stroke="#e5e7eb" />
-                </g>
-              );
-            })}
-
-            {/* Session blocks */}
-            {dateColumns.map((d, i) => {
-              const x = labelW + gutter + i * (colWidth + gutter);
-              const list = lanesByDate.get(d) ?? [];
-              return (
-                <g key={`blocks-${d}`}>
-                  {list.map((s, idx) => {
-                    const y1 = yFor(s.start);
-                    const y2 = yFor(s.end);
-                    const h = y2 - y1;
-                    const lanes = s.lanes;
-                    const lane = s.lane;
-                    const w = (colWidth - 6) / lanes;
-                    const bx = x + 3 + lane * w;
-
-                    return (
-                      <g
-                        key={idx}
-                        onMouseEnter={(e) => showTooltipWithDelay(e, s)}
-                        onMouseLeave={hideTooltip}
-                        onMouseMove={moveTooltip}
-                      >
-                        <rect
-                          x={bx}
-                          y={y1 + 2}
-                          rx={8}
-                          ry={8}
-                          width={w - 6}
-                          height={Math.max(14, h - 4)}
-                          fill={colorByInstructor.get(s.instructor) || "#94a3b8"}
-                          opacity={0.85}
-                        />
-                        <text x={bx + 8} y={y1 + 18} fontSize={11} fill="#111" style={{ pointerEvents: "none" }}>
-                          {s.baseCourse}
-                        </text>
-                        <text x={bx + 8} y={y1 + 32} fontSize={10} fill="#111" style={{ pointerEvents: "none" }}>
-                          {format(s.start, "h:mm a")}–{format(s.end, "h:mm a")}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </g>
-              );
-            })}
-
-            {/* Axis titles */}
-            <text x={labelW / 2} y={16} textAnchor="middle" fontSize={12} fill="#6b7280">Time</text>
-            <text x={width - 60} y={16} textAnchor="end" fontSize={12} fill="#6b7280" className="select-none">Dates</text>
-          </svg>
+          <ScheduleSvg
+		    width={width}
+		    height={height}
+		    dateColumns={dateColumns}
+		    hourTicks={hourTicks}
+		    effectiveMin={effectiveMin}
+		    hourHeight={hourHeight}
+		    headerH={headerH}
+		    gutter={gutter}
+		    labelW={labelW}
+		    colWidth={colWidth}
+		    lanesByDate={lanesByDate}
+		    yFor={yFor}
+		    colorByInstructor={colorByInstructor}
+		    showTooltipWithDelay={showTooltipWithDelay}
+		    hideTooltip={hideTooltip}
+		    moveTooltip={moveTooltip}
+		  />
         </div>
       </div>
     )}
