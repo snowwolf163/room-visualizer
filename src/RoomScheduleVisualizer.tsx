@@ -7,6 +7,22 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Download, Upload, Calendar as CalendarIcon } from "lucide-react";
+import { HEADER_MAP, REQUIRED_HEADERS } from "./room-visualizer/constants";
+import type { Row, SessionInstance, ValidationSchedRow } from "./room-visualizer/types";
+import {
+  assignColors,
+  distinct,
+  formatDisplayDate,
+  formatSectionLabel,
+  generateOccurrences,
+  getBaseCourse,
+  getSectionNumber,
+  normalizeDays,
+  parseExcelDate,
+  parseTimeOnDate,
+  timeRangesOverlap,
+  timeToMinutes,
+} from "./room-visualizer/utils";
 
 /**
  * Room Schedule Visualizer
@@ -28,248 +44,6 @@ import { Download, Upload, Calendar as CalendarIcon } from "lucide-react";
  * 11. Status
  * 12. Term
  */
- 
-// Define a palette of visually distinct colors
-const COLOR_PALETTE = [
-  "#ef4444", // red
-  "#3b82f6", // blue
-  "#10b981", // green
-  "#f59e0b", // amber
-  "#8b5cf6", // violet
-  "#ec4899", // pink
-  "#14b8a6", // teal
-  "#f97316", // orange
-  "#22c55e", // emerald
-  "#6366f1", // indigo
-];
-
-// ---- Utilities ----
-const HEADER_MAP: Record<string, string> = {
-  "course/section": "courseSection",
-  "course section": "courseSection",
-  "course offering id": "courseOfferingId",
-  "start date": "startDate",
-  "end date": "endDate",
-  "days met": "daysMet",
-  "start time": "startTime",
-  "end time": "endTime",
-  "instructor": "instructor",
-  "room": "room",
-  "max enrollment": "maxEnrollment",
-  "status": "status",
-  "term": "term",
-};
-
-type Row = {
-  courseSection: string;
-  courseOfferingId: string;
-  startDate: string; // e.g., 8/25/2025
-  endDate: string; // e.g., 12/16/2025
-  daysMet: string; // e.g., MWF or TR or T or Th
-  startTime: string; // e.g., 12:00 PM
-  endTime: string; // e.g., 2:50 PM
-  instructor: string;
-  room: string;
-  maxEnrollment?: string | number;
-  status?: string;
-  term?: string;
-};
-
-type SessionInstance = {
-  date: Date; // specific meeting date
-  start: Date; // same date with time
-  end: Date;   // same date with time
-  instructor: string;
-  courseSection: string;
-  room: string;
-  baseCourse: string;
-  sections: string[];
-  daysMet: string;
-  startDate: string | number;
-  endDate: string | number;
-  term: string;
-  status: string;
-  courseOfferingIds: string[];
-};
-
-function parseExcelDate(v: any): Date | null {
-  // Handle date strings like "8/25/2025" or Excel serial numbers
-  if (v == null || v === "") return null;
-  if (typeof v === "number") {
-    // Excel serial date (days since 1899-12-30)
-    const epoch = new Date(Date.UTC(1899, 11, 30));
-    const d = new Date(epoch.getTime() + v * 24 * 60 * 60 * 1000);
-    return d;
-  }
-  if (typeof v === "string") {
-    // Try MM/dd/yyyy and M/d/yyyy varieties
-    const fmts = ["M/d/yyyy", "MM/dd/yyyy", "M/d/yy", "MM/dd/yy", "yyyy-MM-dd"]; 
-    for (const f of fmts) {
-      try {
-        const d = parse(v.trim(), f, new Date());
-        if (!isNaN(d.getTime())) return d;
-      } catch {}
-    }
-    // Fallback: Date.parse
-    const d2 = new Date(v);
-    if (!isNaN(d2.getTime())) return d2;
-  }
-  return null;
-}
-
-function parseTimeOnDate(date: Date, timeValue: string | number): Date {
-  const d = new Date(date);
-
-  // Handle Excel numeric time fractions, e.g. 0.5 = 12:00 PM
-  if (typeof timeValue === "number" && !isNaN(timeValue)) {
-    const totalMinutes = Math.round(timeValue * 24 * 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    d.setHours(hours, minutes, 0, 0);
-    return d;
-  }
-
-  const s = String(timeValue).trim();
-
-  // Accept formats like "12:00 PM", "2:50 PM", "14:30", "2 PM"
-  const fmts = ["h:mm a", "h a", "HH:mm", "H:mm", "h.mm a"];
-  for (const f of fmts) {
-    const parsed = parse(s, f, date);
-    if (!isNaN(parsed.getTime())) return parsed;
-  }
-
-  // Fallback manual parsing
-  const m = s.match(/(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/i);
-  if (m) {
-    let h = parseInt(m[1], 10);
-    const min = m[2] ? parseInt(m[2], 10) : 0;
-    const ampm = m[3]?.toUpperCase();
-
-    if (ampm === "PM" && h < 12) h += 12;
-    if (ampm === "AM" && h === 12) h = 0;
-
-    d.setHours(h, min, 0, 0);
-    return d;
-  }
-
-  return d;
-}
-
-function normalizeDays(daysMet: string): string[] {
-  // Convert strings like "MWF", "TR", "T", "Th", "M, W", "TuTh" into tokens M,T,W,R,F,S,U
-  if (!daysMet) return [];
-  let s = daysMet.replace(/\s|,/g, "").trim();
-  // Handle common multi-letter tokens first to avoid T+H ambiguity
-  s = s.replace(/Th/gi, "R"); // Thursday as R
-  s = s.replace(/Tu/gi, "T"); // Tuesday
-  s = s.replace(/Su/gi, "U"); // Sunday
-  s = s.replace(/Sa/gi, "S"); // Saturday
-  // Some exports use R for Thu already, keep as is
-  const tokens: string[] = [];
-  for (const ch of s) {
-    if ("MTWRFSU".includes(ch.toUpperCase())) tokens.push(ch.toUpperCase());
-  }
-  return tokens;
-}
-
-function dayToIndex(d: string): number {
-  // Sunday=0 ... Saturday=6 (JS default)
-  switch (d) {
-    case "U": return 0; // Sunday
-    case "M": return 1;
-    case "T": return 2;
-    case "W": return 3;
-    case "R": return 4; // Thursday
-    case "F": return 5;
-    case "S": return 6; // Saturday
-    default: return -1;
-  }
-}
-
-function generateOccurrences(row: Row): Date[] {
-  const start = parseExcelDate(row.startDate);
-  const end = parseExcelDate(row.endDate);
-  if (!start || !end) return [];
-  const days = normalizeDays(row.daysMet);
-  if (!days.length) return [];
-
-  // Iterate all days in interval and select matching weekdays
-  const allDays = eachDayOfInterval({ start, end });
-  const wanted = new Set(days.map(dayToIndex));
-  return allDays.filter(d => wanted.has(d.getDay()));
-}
-
-function distinct<T>(arr: T[]): T[] { return Array.from(new Set(arr)); }
-
-//Assign Color to Instructor
-function assignColors(names: string[]): Map<string, string> {
-  const m = new Map<string, string>();
-  names.forEach((n, idx) => {
-    m.set(n, COLOR_PALETTE[idx % COLOR_PALETTE.length]);
-  });
-  return m;
-}
-
-function timeToMinutes(d: Date) { return d.getHours() * 60 + d.getMinutes(); }
-
-//To normalize the course name
-function getBaseCourse(courseSection: string): string {
-  // Example:
-  // "MMET 201/501 LEC" -> "MMET 201 LEC"
-  // "MMET 207/512 LEC" -> "MMET 207 LEC"
-  return courseSection.replace(/\/\d+/, "").replace(/\s+/g, " ").trim();
-}
-
-//To extract the section number
-function getSectionNumber(courseSection: string): string | null {
-  const match = courseSection.match(/\/(\d+)/);
-  return match ? match[1] : null;
-}
-
-//To join course sections together for the label inside the block on the graph
-function formatSectionLabel(session: SessionInstance): string {
-  if (session.sections.length <= 1) return session.courseSection;
-  return `${session.baseCourse} (${session.sections.join(", ")})`;
-}
-
-//Change the date format to show it nicely
-function formatDisplayDate(value: string | number): string {
-  const d = parseExcelDate(value);
-  return d ? format(d, "M/d/yyyy") : String(value || "—");
-}
-
-const REQUIRED_HEADERS = [
-  "Course/Section",
-  "Course Offering Id",
-  "Start Date",
-  "End Date",
-  "Days Met",
-  "Start Time",
-  "End Time",
-  "Instructor",
-  "Room",
-  "Max Enrollment",
-  "Status",
-  "Term",
-];
-
-type ValidationSchedRow = {
-  row: Row;
-  startDateObj: Date;
-  endDateObj: Date;
-  startTimeObj: Date;
-  endTimeObj: Date;
-  instructor: string;
-  room: string;
-  term: string;
-  status: string;
-  courseSection: string;
-  daysMet: string;
-};
-
-function timeRangesOverlap(startA: Date, endA: Date, startB: Date, endB: Date): boolean {
-  return startA < endB && startB < endA;
-}
 
 export default function RoomScheduleVisualizer() {
   const [rows, setRows] = useState<Row[]>([]);
