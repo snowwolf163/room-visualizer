@@ -212,7 +212,7 @@ export default function RoomScheduleVisualizer() {
 
     deduped.sort(
       (a, b) =>
-        WEEKDAY_COLUMNS.indexOf(a.dayCode as any) - WEEKDAY_COLUMNS.indexOf(b.dayCode as any) ||
+        WEEKDAY_COLUMNS.indexOf(a.dayCode as (typeof WEEKDAY_COLUMNS)[number]) - WEEKDAY_COLUMNS.indexOf(b.dayCode as (typeof WEEKDAY_COLUMNS)[number]) ||
         a.start.getTime() - b.start.getTime()
     );
 
@@ -229,7 +229,7 @@ export default function RoomScheduleVisualizer() {
     [visibleInstructors]
   );
 
-  const dateColumns = WEEKDAY_COLUMNS as string[];
+  const dateColumns = [...WEEKDAY_COLUMNS];
 
   const validationResults = useMemo(() => {
     const errors: string[] = [];
