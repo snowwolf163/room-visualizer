@@ -82,6 +82,14 @@ type SessionInstance = {
   instructor: string;
   courseSection: string;
   room: string;
+  baseCourse: string;
+  sections: string[];
+  daysMet: string;
+  startDate: string | number;
+  endDate: string | number;
+  term: string;
+  status: string;
+  courseOfferingIds: string[];
 };
 
 function parseExcelDate(v: any): Date | null {
@@ -204,12 +212,52 @@ function assignColors(names: string[]): Map<string, string> {
 
 function timeToMinutes(d: Date) { return d.getHours() * 60 + d.getMinutes(); }
 
+//To normalize the course name
+function getBaseCourse(courseSection: string): string {
+  // Example:
+  // "MMET 201/501 LEC" -> "MMET 201 LEC"
+  // "MMET 207/512 LEC" -> "MMET 207 LEC"
+  return courseSection.replace(/\/\d+/, "").replace(/\s+/g, " ").trim();
+}
+
+//To extract the section number
+function getSectionNumber(courseSection: string): string | null {
+  const match = courseSection.match(/\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+//To join course sections together for the label inside the block on the graph
+function formatSectionLabel(session: SessionInstance): string {
+  if (session.sections.length <= 1) return session.courseSection;
+  return `${session.baseCourse} (${session.sections.join(", ")})`;
+}
+
+//Change the date format to show it nicely
+function formatDisplayDate(value: string | number): string {
+  const d = parseExcelDate(value);
+  return d ? format(d, "M/d/yyyy") : String(value || "—");
+}
+
 export default function RoomScheduleVisualizer() {
   const [rows, setRows] = useState<Row[]>([]);
   const [room, setRoom] = useState<string>("");
   const [minHour, setMinHour] = useState<number>(7);  // default 7:00
   const [maxHour, setMaxHour] = useState<number>(22); // default 22:00
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [tooltip, setTooltip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    session: SessionInstance | null;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    session: null,
+  });
+
+  const hoverTimeoutRef = useRef<number | null>(null);
 
 
   const rooms = useMemo(
@@ -218,39 +266,84 @@ export default function RoomScheduleVisualizer() {
   );
 
   const sessions: SessionInstance[] = useMemo(() => {
-    const out: SessionInstance[] = [];
+	const out: SessionInstance[] = [];
 
-    for (const r of rows) {
-      if (!room || r.room === room) {
-        const dates = generateOccurrences(r);
+	for (const r of rows) {
+	  if (!room || r.room === room) {
+		const dates = generateOccurrences(r);
 
-        for (const d of dates) {
-          const start = parseTimeOnDate(d, r.startTime);
-          const end = parseTimeOnDate(d, r.endTime);
+		for (const d of dates) {
+		  const start = parseTimeOnDate(d, r.startTime);
+		  const end = parseTimeOnDate(d, r.endTime);
 
-          if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
-          if (isAfter(start, end) || isEqual(start, end)) continue;
+		  if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
+		  if (isAfter(start, end) || isEqual(start, end)) continue;
 
-          out.push({
-            date: d,
-            start,
-            end,
-            instructor: r.instructor || "Unknown",
-            courseSection: r.courseSection || "",
-            room: r.room || "",
-          });
-        }
-      }
-    }
+		  const courseSection = r.courseSection || "";
+		  const sectionNumber = getSectionNumber(courseSection);
 
-    out.sort(
-      (a, b) =>
-        a.date.getTime() - b.date.getTime() ||
-        a.start.getTime() - b.start.getTime()
-    );
+		  out.push({
+			date: d,
+			start,
+			end,
+			instructor: r.instructor || "Unknown",
+			courseSection,
+			room: r.room || "",
+			baseCourse: getBaseCourse(courseSection),
+			sections: sectionNumber ? [sectionNumber] : [],
+			daysMet: r.daysMet || "",
+			startDate: r.startDate || "",
+			endDate: r.endDate || "",
+			term: r.term || "",
+			status: r.status || "",
+			courseOfferingIds: r.courseOfferingId ? [String(r.courseOfferingId)] : [],
+		  });
+		}
+	  }
+	}
 
-    return out;
-  }, [rows, room]);
+	const merged = new Map<string, SessionInstance>();
+
+	for (const session of out) {
+	  const key = [
+		session.baseCourse,
+		format(session.date, "yyyy-MM-dd"),
+		session.start.getTime(),
+		session.end.getTime(),
+		session.room,
+		session.instructor,
+	  ].join("|");
+
+	  const existing = merged.get(key);
+
+	  if (existing) {
+		existing.sections.push(...session.sections);
+		existing.courseOfferingIds.push(...session.courseOfferingIds);
+	  } else {
+		merged.set(key, {
+		  ...session,
+		  sections: [...session.sections],
+		  courseOfferingIds: [...session.courseOfferingIds],
+		});
+	  }
+	}
+
+	const deduped = Array.from(merged.values()).map(session => ({
+	  ...session,
+	  sections: Array.from(new Set(session.sections)).sort(
+		(a, b) => Number(a) - Number(b)
+	  ),
+	  courseOfferingIds: Array.from(new Set(session.courseOfferingIds)).sort(),
+	}));
+
+	deduped.sort(
+	  (a, b) =>
+		a.date.getTime() - b.date.getTime() ||
+		a.start.getTime() - b.start.getTime()
+	);
+
+	return deduped;
+}, [rows, room]);
 
   const visibleInstructors = useMemo(
     () => distinct(sessions.map(s => s.instructor).filter(Boolean)),
@@ -336,6 +429,49 @@ export default function RoomScheduleVisualizer() {
       a.click();
     };
     img.src = image64;
+  }
+  
+  //Add tooltip functions
+  function showTooltipWithDelay(
+	e: React.MouseEvent<SVGGElement, MouseEvent>,
+	session: SessionInstance
+  ) {
+	if (hoverTimeoutRef.current) {
+	  window.clearTimeout(hoverTimeoutRef.current);
+	}
+
+	const x = e.clientX;
+	const y = e.clientY;
+
+	hoverTimeoutRef.current = window.setTimeout(() => {
+	  setTooltip({
+		visible: true,
+		x,
+		y,
+		session,
+	  });
+	}, 500);
+  }
+
+  function hideTooltip() {
+	if (hoverTimeoutRef.current) {
+	  window.clearTimeout(hoverTimeoutRef.current);
+	  hoverTimeoutRef.current = null;
+	}
+
+	setTooltip(prev => ({
+	  ...prev,
+	  visible: false,
+	  session: null,
+	}));
+  }
+
+  function moveTooltip(e: React.MouseEvent<SVGGElement, MouseEvent>) {
+	setTooltip(prev => ({
+	  ...prev,
+	  x: e.clientX,
+	  y: e.clientY,
+	}));
   }
 
   // ---- Layout constants ----
@@ -532,7 +668,12 @@ export default function RoomScheduleVisualizer() {
 				  const w = (colWidth - 6) / lanes;
 				  const bx = x + 3 + lane * w;
 				  return (
-					<g key={idx}>
+					<g
+					  key={idx}
+					  onMouseEnter={(e) => showTooltipWithDelay(e, s)}
+					  onMouseLeave={hideTooltip}
+					  onMouseMove={moveTooltip}
+					>
 					  <rect
 						x={bx}
 						y={y1 + 2}
@@ -544,10 +685,10 @@ export default function RoomScheduleVisualizer() {
 						opacity={0.85}
 					  />
 					  <text x={bx + 8} y={y1 + 18} fontSize={11} fill="#111" style={{ pointerEvents: "none" }}>
-						{s.courseSection}
+						{s.baseCourse}
 					  </text>
 					  <text x={bx + 8} y={y1 + 32} fontSize={10} fill="#111" style={{ pointerEvents: "none" }}>
-						{s.instructor} · {format(s.start, "h:mm a")}–{format(s.end, "h:mm a")}
+						{format(s.start, "h:mm a")}–{format(s.end, "h:mm a")}
 					  </text>
 					</g>
 				  );
@@ -562,6 +703,42 @@ export default function RoomScheduleVisualizer() {
 		</svg>
 	  </div>
 	</div>
+  {tooltip.visible && tooltip.session && (
+    <div
+      className="fixed z-50 max-w-sm rounded-lg border bg-white p-4 shadow-xl text-sm"
+      style={{
+        left: tooltip.x + 12,
+        top: tooltip.y + 12,
+        pointerEvents: "none",
+      }}
+    >
+      <div className="font-semibold text-base mb-2">
+        {formatSectionLabel(tooltip.session)}
+      </div>
+
+      <div className="space-y-1">
+        <div><strong>Instructor:</strong> {tooltip.session.instructor}</div>
+        <div><strong>Days Met:</strong> {tooltip.session.daysMet || "—"}</div>
+        <div>
+          <strong>Date Range:</strong>{" "}
+          {formatDisplayDate(tooltip.session.startDate)} to {formatDisplayDate(tooltip.session.endDate)}
+        </div>
+        <div>
+          <strong>Time:</strong> {format(tooltip.session.start, "h:mm a")}–{format(tooltip.session.end, "h:mm a")}
+        </div>
+        <div><strong>Room:</strong> {tooltip.session.room || "—"}</div>
+        <div><strong>Term:</strong> {tooltip.session.term || "—"}</div>
+        <div><strong>Status:</strong> {tooltip.session.status || "—"}</div>
+        <div>
+          <strong>Course Offering Ids:</strong>{" "}
+          {tooltip.session.courseOfferingIds.length
+            ? tooltip.session.courseOfferingIds.join(", ")
+            : "—"}
+        </div>
+      </div>
+    </div>
+  )}
+	
   </div>
 );
 }
