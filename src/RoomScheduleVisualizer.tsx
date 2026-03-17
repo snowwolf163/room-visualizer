@@ -49,12 +49,14 @@ export default function RoomScheduleVisualizer() {
   const [minHour, setMinHour] = useState<number>(7);  // default 7:00
   const [maxHour, setMaxHour] = useState<number>(22); // default 22:00
   const fileRef = useRef<HTMLInputElement>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null); //tooltip reference
   
   //Checking validation const
   const [activeTab, setActiveTab] = useState<"schedule" | "validation">("schedule");
   const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
   const [formatErrors, setFormatErrors] = useState<string[]>([]);
 
+  //Tooltip const
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     x: number;
@@ -378,27 +380,29 @@ export default function RoomScheduleVisualizer() {
     img.src = image64;
   }
   
-  //Add tooltip functions
-  function showTooltipWithDelay(
-	e: React.MouseEvent<SVGGElement, MouseEvent>,
-	session: SessionInstance
-  ) {
-	if (hoverTimeoutRef.current) {
-	  window.clearTimeout(hoverTimeoutRef.current);
+	//Add tooltip functions
+	function showTooltipWithDelay(
+	  e: React.MouseEvent<SVGGElement, MouseEvent>,
+	  session: SessionInstance
+	) {
+	  if (hoverTimeoutRef.current) {
+		window.clearTimeout(hoverTimeoutRef.current);
+	  }
+
+	  const mouseX = e.clientX;
+	  const mouseY = e.clientY;
+
+	  hoverTimeoutRef.current = window.setTimeout(() => {
+		const { left, top } = getClampedTooltipPosition(mouseX, mouseY);
+
+		setTooltip({
+		  visible: true,
+		  x: left,
+		  y: top,
+		  session,
+		});
+	  }, 500);
 	}
-
-	const x = e.clientX;
-	const y = e.clientY;
-
-	hoverTimeoutRef.current = window.setTimeout(() => {
-	  setTooltip({
-		visible: true,
-		x,
-		y,
-		session,
-	  });
-	}, 500);
-  }
 
   function hideTooltip() {
 	if (hoverTimeoutRef.current) {
@@ -413,13 +417,39 @@ export default function RoomScheduleVisualizer() {
 	}));
   }
 
-  function moveTooltip(e: React.MouseEvent<SVGGElement, MouseEvent>) {
-	setTooltip(prev => ({
-	  ...prev,
-	  x: e.clientX,
-	  y: e.clientY,
-	}));
+	function moveTooltip(e: React.MouseEvent<SVGGElement, MouseEvent>) {
+	  const { left, top } = getClampedTooltipPosition(e.clientX, e.clientY);
+
+	  setTooltip(prev => ({
+		...prev,
+		x: left,
+		y: top,
+	  }));
+	}
+
+  //To clamp the tooltip position
+  function getClampedTooltipPosition(x: number, y: number) {
+	const margin = 12;
+	const tooltipWidth = tooltipRef.current?.offsetWidth ?? 320;
+	const tooltipHeight = tooltipRef.current?.offsetHeight ?? 220;
+
+	let left = x + margin;
+	let top = y + margin;
+
+	if (left + tooltipWidth > window.innerWidth - margin) {
+	  left = x - tooltipWidth - margin;
+	}
+
+	if (top + tooltipHeight > window.innerHeight - margin) {
+	  top = y - tooltipHeight - margin;
+	}
+
+	if (left < margin) left = margin;
+	if (top < margin) top = margin;
+
+	return { left, top };
   }
+
 
   // ---- Layout constants ----
   const colWidth = 140;
@@ -576,13 +606,14 @@ export default function RoomScheduleVisualizer() {
 
     {activeTab === "schedule" && tooltip.visible && tooltip.session && (
       <div
-        className="fixed z-50 max-w-sm rounded-lg border bg-white p-4 shadow-xl text-sm"
-        style={{
-          left: tooltip.x + 12,
-          top: tooltip.y + 12,
-          pointerEvents: "none",
-        }}
-      >
+		ref={tooltipRef}
+		className="fixed z-50 max-w-sm rounded-lg border bg-white p-4 shadow-xl text-sm"
+		style={{
+		  left: tooltip.x,
+		  top: tooltip.y,
+		  pointerEvents: "none",
+		}}
+	  >
         <div className="font-semibold text-base mb-2">
           {formatSectionLabel(tooltip.session)}
         </div>
