@@ -1,12 +1,12 @@
 import './index.css'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { HashRouter, Routes, Route, Link } from 'react-router-dom'
 import RoomScheduleVisualizer from './RoomScheduleVisualizer'
 import CreditPage from './CreditPage'
 import GuidePage from './GuidePage'
 
 function App() {
   return (
-    <BrowserRouter basename="/room-visualizer">
+    <HashRouter>
       <div className="h-screen w-screen flex flex-col bg-white">
         <nav className="p-4 border-b flex gap-4 shrink-0">
           <Link to="/" className="text-blue-600 hover:underline">Home</Link>
@@ -22,7 +22,7 @@ function App() {
           </Routes>
         </div>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 
