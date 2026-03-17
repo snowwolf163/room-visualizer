@@ -119,8 +119,27 @@ export default function ScheduleSvg({
               const h = y2 - y1;
               const lanes = s.lanes;
               const lane = s.lane;
-              const w = (colWidth - 6) / lanes;
-              const bx = x + 3 + lane * w;
+			  //compute a group width and center that group inside the day column
+              const innerPadding = 6;
+			  const availableWidth = colWidth - innerPadding * 2;
+			  const laneWidth = availableWidth / lanes;
+			  const groupWidth = laneWidth * lanes;
+			  const groupStartX = x + (colWidth - groupWidth) / 2;
+			  const bx = groupStartX + lane * laneWidth;
+			  
+			  //compute the block center
+			  const blockWidth = laneWidth - 6;
+			  const textCenterX = bx + blockWidth / 2;
+			  
+			  //vertical text layout
+			  const blockY = y1 + 2;
+			  const blockHeight = Math.max(14, h - 4);
+			  const textBlockCenterY = blockY + blockHeight / 2;
+			  const courseTextY = textBlockCenterY - 4;
+			  const timeTextY = textBlockCenterY + 10;
+			  
+			  const showTwoLines = blockHeight >= 36;
+			  const showOneLine = blockHeight >= 20;
 
               return (
                 <g
@@ -130,33 +149,51 @@ export default function ScheduleSvg({
                   onMouseMove={moveTooltip}
                 >
                   <rect
-                    x={bx}
-                    y={y1 + 2}
-                    rx={8}
-                    ry={8}
-                    width={w - 6}
-                    height={Math.max(14, h - 4)}
-                    fill={colorByInstructor.get(s.instructor) || "#94a3b8"}
-                    opacity={0.85}
-                  />
-                  <text
-                    x={bx + 8}
-                    y={y1 + 18}
-                    fontSize={11}
-                    fill="#111"
-                    style={{ pointerEvents: "none" }}
-                  >
-                    {s.baseCourse}
-                  </text>
-                  <text
-                    x={bx + 8}
-                    y={y1 + 32}
-                    fontSize={10}
-                    fill="#111"
-                    style={{ pointerEvents: "none" }}
-                  >
-                    {format(s.start, "h:mm a")}–{format(s.end, "h:mm a")}
-                  </text>
+					x={bx}
+					y={blockY}
+					rx={8}
+					ry={8}
+					width={blockWidth}
+					height={blockHeight}
+					fill={colorByInstructor.get(s.instructor) || "#94a3b8"}
+					opacity={0.85}
+				  />
+
+				  {showTwoLines ? (
+					<>
+					  <text
+						x={textCenterX}
+						y={courseTextY}
+						textAnchor="middle"
+						fontSize={11}
+						fill="#111"
+						style={{ pointerEvents: "none" }}
+					  >
+						{s.baseCourse}
+					  </text>
+					  <text
+						x={textCenterX}
+						y={timeTextY}
+						textAnchor="middle"
+						fontSize={10}
+						fill="#111"
+						style={{ pointerEvents: "none" }}
+					  >
+						{format(s.start, "h:mm a")}–{format(s.end, "h:mm a")}
+					  </text>
+					</>
+				  ) : showOneLine ? (
+					<text
+					  x={textCenterX}
+					  y={textBlockCenterY + 4}
+					  textAnchor="middle"
+					  fontSize={10}
+					  fill="#111"
+					  style={{ pointerEvents: "none" }}
+					>
+					  {s.baseCourse}
+					</text>
+				  ) : null}
                 </g>
               );
             })}

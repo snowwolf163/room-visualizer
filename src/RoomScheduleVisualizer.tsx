@@ -84,7 +84,9 @@ export default function RoomScheduleVisualizer() {
       setContainerWidth(el.clientWidth);
     };
 
-    updateWidth();
+    const frame = requestAnimationFrame(() => {
+      updateWidth();
+    });
 
     const observer = new ResizeObserver(() => {
       updateWidth();
@@ -92,8 +94,11 @@ export default function RoomScheduleVisualizer() {
 
     observer.observe(el);
 
-    return () => observer.disconnect();
-  }, []);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [activeTab]);
 
   const rooms = useMemo(
     () => distinct(rows.map(r => r.room).filter(Boolean)).sort(),
