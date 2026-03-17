@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { WEEKDAY_LABELS } from "./utils";
 import type { MouseEvent } from "react";
 import type { SessionInstance } from "./types";
 
@@ -51,22 +52,22 @@ export default function ScheduleSvg({
     <svg id="schedule-svg" width={width} height={height} className="block min-w-full">
       {/* Column headers */}
       {dateColumns.map((d, i) => {
-        const x = labelW + gutter + i * (colWidth + gutter);
-        return (
-          <g key={d}>
-            <text
-              x={x + colWidth / 2}
-              y={20}
-              textAnchor="middle"
-              fontSize={12}
-              fontWeight={600}
-              fill="#111"
-            >
-              {format(new Date(d), "EEE MMM d")}
-            </text>
-          </g>
-        );
-      })}
+		const x = labelW + gutter + i * (colWidth + gutter);
+		return (
+		  <g key={d}>
+			<text
+			  x={x + colWidth / 2}
+			  y={20}
+			  textAnchor="middle"
+			  fontSize={12}
+			  fontWeight={600}
+			  fill="#111"
+			>
+			  {WEEKDAY_LABELS[d] || d}
+			</text>
+		  </g>
+		);
+	  })}
 
       {/* Hour grid lines and labels */}
       {hourTicks.map((h, idx) => {

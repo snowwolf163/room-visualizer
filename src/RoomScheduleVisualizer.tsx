@@ -9,7 +9,8 @@ import {
   distinct,
   formatDisplayDate,
   formatSectionLabel,
-  generateOccurrences,
+  generateWeeklyOccurrences,
+  WEEKDAY_COLUMNS,
   getBaseCourse,
   getSectionNumber,
   normalizeDays,
@@ -116,84 +117,85 @@ export default function RoomScheduleVisualizer() {
   }, [rows]);
 
   const sessions: SessionInstance[] = useMemo(() => {
-	const out: SessionInstance[] = [];
+    const out: SessionInstance[] = [];
 
-	for (const r of rows) {
-	  if (!room || r.room === room) {
-		const dates = generateOccurrences(r);
+    for (const r of rows) {
+      if (!room || r.room === room) {
+        const weeklyDates = generateWeeklyOccurrences(r);
 
-		for (const d of dates) {
-		  const start = parseTimeOnDate(d, r.startTime);
-		  const end = parseTimeOnDate(d, r.endTime);
+        for (const { dayCode, date } of weeklyDates) {
+          const start = parseTimeOnDate(date, r.startTime);
+          const end = parseTimeOnDate(date, r.endTime);
 
-		  if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
-		  if (isAfter(start, end) || isEqual(start, end)) continue;
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) continue;
+          if (isAfter(start, end) || isEqual(start, end)) continue;
 
-		  const courseSection = r.courseSection || "";
-		  const sectionNumber = getSectionNumber(courseSection);
+          const courseSection = r.courseSection || "";
+          const sectionNumber = getSectionNumber(courseSection);
 
-		  out.push({
-			date: d,
-			start,
-			end,
-			instructor: r.instructor || "Unknown",
-			courseSection,
-			room: r.room || "",
-			baseCourse: getBaseCourse(courseSection),
-			sections: sectionNumber ? [sectionNumber] : [],
-			daysMet: r.daysMet || "",
-			startDate: r.startDate || "",
-			endDate: r.endDate || "",
-			term: r.term || "",
-			status: r.status || "",
-			courseOfferingIds: r.courseOfferingId ? [String(r.courseOfferingId)] : [],
-		  });
-		}
-	  }
-	}
+          out.push({
+            date,
+            dayCode,
+            start,
+            end,
+            instructor: r.instructor || "Unknown",
+            courseSection,
+            room: r.room || "",
+            baseCourse: getBaseCourse(courseSection),
+            sections: sectionNumber ? [sectionNumber] : [],
+            daysMet: r.daysMet || "",
+            startDate: r.startDate || "",
+            endDate: r.endDate || "",
+            term: r.term || "",
+            status: r.status || "",
+            courseOfferingIds: r.courseOfferingId ? [String(r.courseOfferingId)] : [],
+          });
+        }
+      }
+    }
 
-	const merged = new Map<string, SessionInstance>();
+    const merged = new Map<string, SessionInstance>();
 
-	for (const session of out) {
-	  const key = [
-		session.baseCourse,
-		format(session.date, "yyyy-MM-dd"),
-		session.start.getTime(),
-		session.end.getTime(),
-		session.room,
-		session.instructor,
-	  ].join("|");
+    for (const session of out) {
+      const key = [
+        session.baseCourse,
+        session.dayCode,
+        session.start.getHours(),
+        session.start.getMinutes(),
+        session.end.getHours(),
+        session.end.getMinutes(),
+        session.room,
+        session.instructor,
+      ].join("|");
 
-	  const existing = merged.get(key);
+      const existing = merged.get(key);
 
-	  if (existing) {
-		existing.sections.push(...session.sections);
-		existing.courseOfferingIds.push(...session.courseOfferingIds);
-	  } else {
-		merged.set(key, {
-		  ...session,
-		  sections: [...session.sections],
-		  courseOfferingIds: [...session.courseOfferingIds],
-		});
-	  }
-	}
+      if (existing) {
+        existing.sections.push(...session.sections);
+        existing.courseOfferingIds.push(...session.courseOfferingIds);
+      } else {
+        merged.set(key, {
+          ...session,
+          sections: [...session.sections],
+          courseOfferingIds: [...session.courseOfferingIds],
+        });
+      }
+    }
 
-	const deduped = Array.from(merged.values()).map(session => ({
-	  ...session,
-	  sections: Array.from(new Set(session.sections)).sort(
-		(a, b) => Number(a) - Number(b)
-	  ),
-	  courseOfferingIds: Array.from(new Set(session.courseOfferingIds)).sort(),
-	}));
+    const deduped = Array.from(merged.values()).map(session => ({
+      ...session,
+      sections: Array.from(new Set(session.sections)).sort((a, b) => Number(a) - Number(b)),
+      courseOfferingIds: Array.from(new Set(session.courseOfferingIds)).sort(),
+    }));
 
-	deduped.sort(
-	  (a, b) =>
-		a.date.getTime() - b.date.getTime() ||
-		a.start.getTime() - b.start.getTime()
-	);
+    deduped.sort(
+      (a, b) =>
+        WEEKDAY_COLUMNS.indexOf(a.dayCode as any) - WEEKDAY_COLUMNS.indexOf(b.dayCode as any) ||
+        a.start.getTime() - b.start.getTime()
+    );
 
-	return deduped;
-}, [rows, room]);
+    return deduped;
+  }, [rows, room]);
 
   const visibleInstructors = useMemo(
     () => distinct(sessions.map(s => s.instructor).filter(Boolean)),
@@ -205,7 +207,7 @@ export default function RoomScheduleVisualizer() {
     [visibleInstructors]
   );
 
-  const dateColumns = useMemo(() => distinct(sessions.map(s => format(s.date, "yyyy-MM-dd"))), [sessions]);
+  const dateColumns = WEEKDAY_COLUMNS as string[];
 
   const validationResults = useMemo(() => {
     const errors: string[] = [];
@@ -473,8 +475,11 @@ export default function RoomScheduleVisualizer() {
 
   // Group sessions by date string for collision handling
   const byDate = new Map<string, SessionInstance[]>();
+  for (const day of dateColumns) {
+	byDate.set(day, []);
+  }
   for (const s of sessions) {
-    const key = format(s.date, "yyyy-MM-dd");
+    const key = s.dayCode;
     if (!byDate.has(key)) byDate.set(key, []);
     byDate.get(key)!.push(s);
   }
@@ -565,7 +570,7 @@ export default function RoomScheduleVisualizer() {
           )}
 
           <p className="text-xs text-muted-foreground">
-            Tip: We auto-detect days like M, T, W, R (Thu), F, S, U and also parse Th/Tu/Sa/Su. Only rows with a Room and valid Start/End dates & times are rendered.
+            Tip: We auto-detect days like M, T, W, R (Thu), F, S, U and also parse Th/Tu/Sa/Su. Schedules are rendered in a weekly Monday–Sunday layout using valid schedule data, while the tooltip keeps the original term date range.
           </p>
         </>
       )}

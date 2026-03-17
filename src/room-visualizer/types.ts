@@ -15,6 +15,7 @@ export type Row = {
 
 export type SessionInstance = {
   date: Date;
+  dayCode: string;
   start: Date;
   end: Date;
   instructor: string;

@@ -1,4 +1,4 @@
-import { eachDayOfInterval, format, parse } from "date-fns";
+import { format, parse } from "date-fns";
 import { COLOR_PALETTE } from "./constants";
 import type { Row, SessionInstance } from "./types";
 
@@ -78,32 +78,6 @@ export function normalizeDays(daysMet: string): string[] {
   return tokens;
 }
 
-export function dayToIndex(d: string): number {
-  switch (d) {
-    case "U": return 0;
-    case "M": return 1;
-    case "T": return 2;
-    case "W": return 3;
-    case "R": return 4;
-    case "F": return 5;
-    case "S": return 6;
-    default: return -1;
-  }
-}
-
-export function generateOccurrences(row: Row): Date[] {
-  const start = parseExcelDate(row.startDate);
-  const end = parseExcelDate(row.endDate);
-  if (!start || !end) return [];
-
-  const days = normalizeDays(row.daysMet);
-  if (!days.length) return [];
-
-  const allDays = eachDayOfInterval({ start, end });
-  const wanted = new Set(days.map(dayToIndex));
-  return allDays.filter(d => wanted.has(d.getDay()));
-}
-
 export function distinct<T>(arr: T[]): T[] {
   return Array.from(new Set(arr));
 }
@@ -146,4 +120,45 @@ export function timeRangesOverlap(
   endB: Date
 ): boolean {
   return startA < endB && startB < endA;
+}
+
+export const WEEKDAY_COLUMNS = ["M", "T", "W", "R", "F", "S", "U"] as const;
+
+export const WEEKDAY_LABELS: Record<string, string> = {
+  M: "Mon",
+  T: "Tue",
+  W: "Wed",
+  R: "Thu",
+  F: "Fri",
+  S: "Sat",
+  U: "Sun",
+};
+
+export function getReferenceDateForDay(dayCode: string): Date | null {
+  switch (dayCode) {
+    case "M": return new Date(2026, 0, 5);
+    case "T": return new Date(2026, 0, 6);
+    case "W": return new Date(2026, 0, 7);
+    case "R": return new Date(2026, 0, 8);
+    case "F": return new Date(2026, 0, 9);
+    case "S": return new Date(2026, 0, 10);
+    case "U": return new Date(2026, 0, 11);
+    default: return null;
+  }
+}
+
+export function generateWeeklyOccurrences(row: Row): { dayCode: string; date: Date }[] {
+  const start = parseExcelDate(row.startDate);
+  const end = parseExcelDate(row.endDate);
+  if (!start || !end) return [];
+
+  const days = normalizeDays(row.daysMet);
+  if (!days.length) return [];
+
+  return days
+    .map((dayCode) => {
+      const date = getReferenceDateForDay(dayCode);
+      return date ? { dayCode, date } : null;
+    })
+    .filter((x): x is { dayCode: string; date: Date } => x !== null);
 }
