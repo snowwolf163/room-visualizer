@@ -833,25 +833,38 @@ export default function RoomScheduleVisualizer({
 		  ref={graphContainerRef}
 		  className="h-full w-full overflow-auto rounded-2xl border bg-card text-card-foreground shadow-sm"
 		>
-          <ScheduleSvg
-		    width={width}
-		    height={height}
-		    dateColumns={dateColumns}
-		    hourTicks={hourTicks}
-		    effectiveMin={effectiveMin}
-		    hourHeight={hourHeight}
-		    headerH={headerH}
-		    gutter={gutter}
-		    labelW={labelW}
-		    colWidth={colWidth}
-		    lanesByDate={lanesByDate}
-		    yFor={yFor}
-		    colorByInstructor={colorByInstructor}
-			theme={theme}
-			hoveredGroupKey={hoveredGroupKey}
-			setHoveredGroupKey={setHoveredGroupKey}
-		    toggleTooltip={toggleTooltip}
-		  />
+          {sessions.length === 0 ? (
+			<div className="text-center space-y-2 p-6">
+			  <div className="text-lg font-medium">
+				No sessions found
+			  </div>
+			  <div className="text-sm text-muted-foreground">
+				{room
+				  ? `No "${statusFilter}" sessions found for room "${room}".`
+				  : `No sessions match the current filter.`}
+			  </div>
+			</div>
+		  ) : (
+			<ScheduleSvg
+			  width={width}
+			  height={height}
+			  dateColumns={dateColumns}
+			  hourTicks={hourTicks}
+			  effectiveMin={effectiveMin}
+			  hourHeight={hourHeight}
+			  headerH={headerH}
+			  gutter={gutter}
+			  labelW={labelW}
+			  colWidth={colWidth}
+			  lanesByDate={lanesByDate}
+			  yFor={yFor}
+			  colorByInstructor={colorByInstructor}
+			  theme={theme}
+			  hoveredGroupKey={hoveredGroupKey}
+			  setHoveredGroupKey={setHoveredGroupKey}
+			  toggleTooltip={toggleTooltip}
+			/>
+		  )}
         </div>
       </div>
     )}
