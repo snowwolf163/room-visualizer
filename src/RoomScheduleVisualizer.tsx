@@ -388,30 +388,150 @@ export default function RoomScheduleVisualizer({ theme }: RoomScheduleVisualizer
     if (file) handleFile(file);
   }
 
-  function downloadPNG() {
-    // Export the SVG as PNG
-    const svg = document.getElementById("schedule-svg") as SVGSVGElement | null;
-    if (!svg) return;
-    const xml = new XMLSerializer().serializeToString(svg);
-    const svg64 = btoa(unescape(encodeURIComponent(xml)));
-    const image64 = `data:image/svg+xml;base64,${svg64}`;
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = svg.clientWidth * 2;
-      canvas.height = svg.clientHeight * 2;
-      const ctx = canvas.getContext("2d")!;
-      ctx.scale(2, 2);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-      ctx.drawImage(img, 0, 0);
-      const a = document.createElement("a");
-      a.href = canvas.toDataURL("image/png");
-      a.download = `room-${room || "schedule"}.png`;
-      a.click();
-    };
-    img.src = image64;
-  }
+	function downloadPNG() {
+	  const svg = document.getElementById("schedule-svg") as SVGSVGElement | null;
+	  if (!svg) return;
+
+	  const clonedSvg = svg.cloneNode(true) as SVGSVGElement;
+	  clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+	  const svgWidth =
+		Number(svg.getAttribute("width")) || svg.clientWidth || 1200;
+	  const svgHeight =
+		Number(svg.getAttribute("height")) || svg.clientHeight || 800;
+
+	  const exportBg = theme === "dark" ? "#09090b" : "#ffffff";
+	  const exportText = theme === "dark" ? "#f4f4f5" : "#111111";
+	  const exportBorder = theme === "dark" ? "#27272a" : "#e4e4e7";
+
+	  const legendItems = visibleInstructors.filter(Boolean);
+	  const legendPadding = 16;
+	  const legendTitleH = 0;
+	  const legendItemH = 22;
+	  const legendItemMinW = 220;
+	  const legendCols = Math.max(
+		1,
+		Math.floor((svgWidth - legendPadding * 2) / legendItemMinW)
+	  );
+	  const legendRows = Math.max(1, Math.ceil(legendItems.length / legendCols));
+	  const roomTitleH = room ? 26 : 0;
+	  const legendHeight =
+		legendPadding +
+		roomTitleH +
+		legendTitleH +
+		legendRows * legendItemH +
+		legendPadding;
+
+	  const totalHeight = svgHeight + legendHeight;
+
+	  clonedSvg.setAttribute("width", String(svgWidth));
+	  clonedSvg.setAttribute("height", String(totalHeight));
+	  clonedSvg.setAttribute("viewBox", `0 0 ${svgWidth} ${totalHeight}`);
+
+	  const NS = "http://www.w3.org/2000/svg";
+
+	  const bgRect = document.createElementNS(NS, "rect");
+	  bgRect.setAttribute("x", "0");
+	  bgRect.setAttribute("y", "0");
+	  bgRect.setAttribute("width", String(svgWidth));
+	  bgRect.setAttribute("height", String(totalHeight));
+	  bgRect.setAttribute("fill", exportBg);
+	  clonedSvg.insertBefore(bgRect, clonedSvg.firstChild);
+
+	  const legendGroup = document.createElementNS(NS, "g");
+	  legendGroup.setAttribute("transform", `translate(0, ${svgHeight})`);
+
+	  const divider = document.createElementNS(NS, "line");
+	  divider.setAttribute("x1", "0");
+	  divider.setAttribute("y1", "0");
+	  divider.setAttribute("x2", String(svgWidth));
+	  divider.setAttribute("y2", "0");
+	  divider.setAttribute("stroke", exportBorder);
+	  legendGroup.appendChild(divider);
+
+	  let currentY = legendPadding + 6;
+
+	  if (room) {
+		const roomText = document.createElementNS(NS, "text");
+		roomText.setAttribute("x", String(legendPadding));
+		roomText.setAttribute("y", String(currentY + 14));
+		roomText.setAttribute("font-size", "16");
+		roomText.setAttribute("font-weight", "600");
+		roomText.setAttribute("fill", exportText);
+		roomText.textContent = `Room: ${room}`;
+		legendGroup.appendChild(roomText);
+		currentY += roomTitleH;
+	  }
+
+	  const usableWidth = svgWidth - legendPadding * 2;
+	  const itemWidth = usableWidth / legendCols;
+
+	  legendItems.forEach((name, idx) => {
+		const col = idx % legendCols;
+		const row = Math.floor(idx / legendCols);
+
+		const itemX = legendPadding + col * itemWidth;
+		const itemY = currentY + row * legendItemH;
+
+		const swatch = document.createElementNS(NS, "rect");
+		swatch.setAttribute("x", String(itemX));
+		swatch.setAttribute("y", String(itemY));
+		swatch.setAttribute("width", "12");
+		swatch.setAttribute("height", "12");
+		swatch.setAttribute("rx", "3");
+		swatch.setAttribute("ry", "3");
+		swatch.setAttribute("fill", colorByInstructor.get(name) || "#94a3b8");
+		legendGroup.appendChild(swatch);
+
+		const label = document.createElementNS(NS, "text");
+		label.setAttribute("x", String(itemX + 18));
+		label.setAttribute("y", String(itemY + 10));
+		label.setAttribute("font-size", "12");
+		label.setAttribute("fill", exportText);
+		label.textContent = name;
+		legendGroup.appendChild(label);
+	  });
+
+	  clonedSvg.appendChild(legendGroup);
+
+	  const svgString = new XMLSerializer().serializeToString(clonedSvg);
+	  const blob = new Blob([svgString], {
+		type: "image/svg+xml;charset=utf-8",
+	  });
+	  const url = URL.createObjectURL(blob);
+
+	  const img = new Image();
+	  img.onload = () => {
+		const scale = 2;
+		const canvas = document.createElement("canvas");
+		canvas.width = svgWidth * scale;
+		canvas.height = totalHeight * scale;
+
+		const ctx = canvas.getContext("2d");
+		if (!ctx) {
+		  URL.revokeObjectURL(url);
+		  return;
+		}
+
+		ctx.scale(scale, scale);
+		ctx.fillStyle = exportBg;
+		ctx.fillRect(0, 0, svgWidth, totalHeight);
+		ctx.drawImage(img, 0, 0);
+
+		const a = document.createElement("a");
+		a.href = canvas.toDataURL("image/png");
+		a.download = `room-${room || "schedule"}.png`;
+		a.click();
+
+		URL.revokeObjectURL(url);
+	  };
+
+	  img.onerror = () => {
+		URL.revokeObjectURL(url);
+	  };
+
+	  img.src = url;
+	}
   
 	//Add tooltip functions
 	function showTooltipWithDelay(
