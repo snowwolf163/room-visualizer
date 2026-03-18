@@ -609,14 +609,6 @@ export default function RoomScheduleVisualizer({
 	  });
 	}
 
-  function hideTooltip() {
-	setTooltip(prev => ({
-	  ...prev,
-	  visible: false,
-	  session: null,
-	}));
-  }
-
   //To clamp the tooltip position
   function getClampedTooltipPosition(x: number, y: number) {
 	const margin = 12;
