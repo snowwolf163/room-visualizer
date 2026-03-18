@@ -1,6 +1,6 @@
 export default function CreditPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="h-full bg-background text-foreground">
       <div className="p-6 max-w-2xl mx-auto space-y-4">
         <h1 className="text-2xl font-bold">Credits</h1>
 

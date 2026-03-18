@@ -43,8 +43,12 @@ import UploadControls from "./room-visualizer/UploadControls";
  * 11. Status
  * 12. Term
  */
+ 
+type RoomScheduleVisualizerProps = {
+  theme: "light" | "dark";
+};
 
-export default function RoomScheduleVisualizer() {
+export default function RoomScheduleVisualizer({ theme }: RoomScheduleVisualizerProps) {
   const [rows, setRows] = useState<Row[]>([]);
   const [room, setRoom] = useState<string>("");
   const [minHour, setMinHour] = useState<number>(7);  // default 7:00
@@ -337,21 +341,6 @@ export default function RoomScheduleVisualizer() {
   const effectiveMin = Math.min(minHour, autoMinHour);
   const effectiveMax = Math.max(maxHour, autoMaxHour);
 
-  //Add theme state (dark mode)
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    const saved = localStorage.getItem("rsv-theme");
-    if (saved === "light" || saved === "dark") return saved;
-
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-  });
-  //use effect for theme change
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    localStorage.setItem("rsv-theme", theme);
-  }, [theme]);
-
   // ---- Handlers ----
   function handleFile(file: File) {
     const reader = new FileReader();
@@ -558,20 +547,11 @@ export default function RoomScheduleVisualizer() {
 
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-background text-foreground">
-      <div className="shrink-0 p-4 space-y-4">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Room Schedule Visualizer
-          </h1>
-
-          <button
-            className="px-4 py-2 rounded-md border text-sm bg-background text-foreground hover:bg-muted transition-colors"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? "Light mode" : "Dark mode"}
-          </button>
-        </div>
+    <div className="h-full w-full flex flex-col bg-background text-foreground">
+	  <div className="shrink-0 p-4 space-y-4">
+		<h1 className="text-2xl font-semibold tracking-tight">
+		  Room Schedule Visualizer
+		</h1>
 
         <div className="flex gap-2">
           <button
