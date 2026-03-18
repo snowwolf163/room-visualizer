@@ -549,9 +549,6 @@ export default function RoomScheduleVisualizer({ theme }: RoomScheduleVisualizer
   return (
     <div className="h-full w-full flex flex-col bg-background text-foreground">
 	  <div className="shrink-0 p-4 space-y-4">
-		<h1 className="text-2xl font-semibold tracking-tight">
-		  Room Schedule Visualizer
-		</h1>
 
         <div className="flex gap-2">
           <button
