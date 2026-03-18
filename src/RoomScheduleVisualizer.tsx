@@ -83,7 +83,10 @@ export default function RoomScheduleVisualizer({
   
   //Checking validation const
   const [activeTab, setActiveTab] = useState<"schedule" | "validation">("schedule");
-
+  
+  //Hover state
+  const [hoveredGroupKey, setHoveredGroupKey] = useState<string | null>(null);
+  
   //Tooltip const
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
@@ -96,8 +99,6 @@ export default function RoomScheduleVisualizer({
     y: 0,
     session: null,
   });
-
-  const hoverTimeoutRef = useRef<number | null>(null);
   
   //Track container with ResizeObserver
   useEffect(() => {
@@ -123,6 +124,20 @@ export default function RoomScheduleVisualizer({
       observer.disconnect();
     };
   }, [activeTab]);
+
+  //Close Tooltip when Click Outside
+  useEffect(() => {
+  function handleWindowClick() {
+    setTooltip(prev => ({
+      ...prev,
+      visible: false,
+      session: null,
+    }));
+  }
+
+  window.addEventListener("click", handleWindowClick);
+  return () => window.removeEventListener("click", handleWindowClick);
+}, []);
 
   const rooms = useMemo(
     () => distinct(rows.map(r => r.room).filter(Boolean)).sort(),
@@ -553,52 +568,54 @@ export default function RoomScheduleVisualizer({
 	  img.src = url;
 	}
   
-	//Add tooltip functions
-	function showTooltipWithDelay(
+	
+	function getTooltipSessionKey(session: SessionInstance) {
+	  return [
+		session.baseCourse,
+		session.instructor,
+		session.room,
+		session.date.getTime(),
+		session.start.getTime(),
+		session.end.getTime(),
+		session.courseOfferingIds.join(","),
+	  ].join("|");
+	}
+  
+  //Show tooltup on click
+	function toggleTooltip(
 	  e: React.MouseEvent<SVGGElement, MouseEvent>,
 	  session: SessionInstance
 	) {
-	  if (hoverTimeoutRef.current) {
-		window.clearTimeout(hoverTimeoutRef.current);
+	  const clickedKey = getTooltipSessionKey(session);
+	  const currentKey = tooltip.session ? getTooltipSessionKey(tooltip.session) : null;
+
+	  if (tooltip.visible && currentKey === clickedKey) {
+		setTooltip({
+		  visible: false,
+		  x: 0,
+		  y: 0,
+		  session: null,
+		});
+		return;
 	  }
 
-	  const mouseX = e.clientX;
-	  const mouseY = e.clientY;
+	  const { left, top } = getClampedTooltipPosition(e.clientX, e.clientY);
 
-	  hoverTimeoutRef.current = window.setTimeout(() => {
-		const { left, top } = getClampedTooltipPosition(mouseX, mouseY);
-
-		setTooltip({
-		  visible: true,
-		  x: left,
-		  y: top,
-		  session,
-		});
-	  }, 500);
+	  setTooltip({
+		visible: true,
+		x: left,
+		y: top,
+		session,
+	  });
 	}
 
   function hideTooltip() {
-	if (hoverTimeoutRef.current) {
-	  window.clearTimeout(hoverTimeoutRef.current);
-	  hoverTimeoutRef.current = null;
-	}
-
 	setTooltip(prev => ({
 	  ...prev,
 	  visible: false,
 	  session: null,
 	}));
   }
-
-	function moveTooltip(e: React.MouseEvent<SVGGElement, MouseEvent>) {
-	  const { left, top } = getClampedTooltipPosition(e.clientX, e.clientY);
-
-	  setTooltip(prev => ({
-		...prev,
-		x: left,
-		y: top,
-	  }));
-	}
 
   //To clamp the tooltip position
   function getClampedTooltipPosition(x: number, y: number) {
@@ -795,9 +812,10 @@ export default function RoomScheduleVisualizer({
 		    yFor={yFor}
 		    colorByInstructor={colorByInstructor}
 			theme={theme}
-		    showTooltipWithDelay={showTooltipWithDelay}
+			hoveredGroupKey={hoveredGroupKey}
+			setHoveredGroupKey={setHoveredGroupKey}
+		    toggleTooltip={toggleTooltip}
 		    hideTooltip={hideTooltip}
-		    moveTooltip={moveTooltip}
 		  />
         </div>
       </div>

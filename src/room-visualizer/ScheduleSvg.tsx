@@ -1,7 +1,7 @@
 import { format } from "date-fns";
-import { WEEKDAY_LABELS, getContrastTextColor } from "./utils";
 import type { MouseEvent } from "react";
 import type { SessionInstance } from "./types";
+import { WEEKDAY_LABELS, getContrastTextColor, getSessionHoverGroupKey } from "./utils";
 
 type PlacedSession = SessionInstance & {
   lane: number;
@@ -23,12 +23,13 @@ type ScheduleSvgProps = {
   yFor: (date: Date) => number;
   colorByInstructor: Map<string, string>;
   theme: "light" | "dark";
-  showTooltipWithDelay: (
+  hoveredGroupKey: string | null;
+  setHoveredGroupKey: (value: string | null) => void;
+  toggleTooltip: (
     e: MouseEvent<SVGGElement>,
     session: SessionInstance
   ) => void;
   hideTooltip: () => void;
-  moveTooltip: (e: MouseEvent<SVGGElement>) => void;
 };
 
 export default function ScheduleSvg({
@@ -46,9 +47,10 @@ export default function ScheduleSvg({
   yFor,
   colorByInstructor,
   theme,
-  showTooltipWithDelay,
+  hoveredGroupKey,
+  setHoveredGroupKey,
+  toggleTooltip,
   hideTooltip,
-  moveTooltip,
 }: ScheduleSvgProps) {
   const svgTheme =
     theme === "dark"
@@ -168,13 +170,35 @@ export default function ScheduleSvg({
 
               const blockFill = colorByInstructor.get(s.instructor) || "#94a3b8";
               const blockTextColor = getContrastTextColor(blockFill);
+			  
+			  const groupKey = getSessionHoverGroupKey(s);
+			  const isHighlighted = hoveredGroupKey === null || hoveredGroupKey === groupKey;
+			  const isDirectHover = hoveredGroupKey === groupKey;
+
+			  const blockOpacity = hoveredGroupKey === null ? 0.85 : isHighlighted ? 1 : 0.18;
+			  const strokeColor =
+			    hoveredGroupKey !== null && isDirectHover
+				  ? theme === "dark"
+			  	    ? "#f8fafc"
+			  	    : "#111111"
+			  	  : theme === "dark"
+					? "#ffffff22"
+					: "#00000018";
+			  const strokeWidth = hoveredGroupKey !== null && isDirectHover ? 2 : 1;
 
               return (
                 <g
                   key={idx}
-                  onMouseEnter={(e) => showTooltipWithDelay(e, s)}
-                  onMouseLeave={hideTooltip}
-                  onMouseMove={moveTooltip}
+                  onMouseEnter={(e) => {
+					setHoveredGroupKey(groupKey);
+				  }}
+				  onMouseLeave={() => {
+					setHoveredGroupKey(null);
+				  }}
+				  onClick={(e) => {
+					e.stopPropagation();
+					toggleTooltip(e, s);
+				  }}
                 >
                   <rect
                     x={bx}
@@ -185,6 +209,8 @@ export default function ScheduleSvg({
                     height={blockHeight}
                     fill={blockFill}
                     opacity={0.85}
+					stroke={strokeColor}
+					strokeWidth={strokeWidth}
                   />
 
                   {showTwoLines ? (
@@ -195,6 +221,7 @@ export default function ScheduleSvg({
                         textAnchor="middle"
                         fontSize={11}
                         fill={blockTextColor}
+						opacity={hoveredGroupKey === null ? 1 : isHighlighted ? 1 : 0.45}
                         style={{ pointerEvents: "none" }}
                       >
                         {s.baseCourse}
@@ -205,6 +232,7 @@ export default function ScheduleSvg({
                         textAnchor="middle"
                         fontSize={10}
                         fill={blockTextColor}
+						opacity={hoveredGroupKey === null ? 1 : isHighlighted ? 1 : 0.45}
                         style={{ pointerEvents: "none" }}
                       >
                         {format(s.start, "h:mm a")}–{format(s.end, "h:mm a")}
@@ -217,6 +245,7 @@ export default function ScheduleSvg({
                       textAnchor="middle"
                       fontSize={10}
                       fill={blockTextColor}
+					  opacity={hoveredGroupKey === null ? 1 : isHighlighted ? 1 : 0.45}
                       style={{ pointerEvents: "none" }}
                     >
                       {s.baseCourse}

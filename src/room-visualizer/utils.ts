@@ -177,3 +177,8 @@ export function getContrastTextColor(hex: string): string {
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.6 ? "#111111" : "#f8fafc";
 }
+
+//Hover highlighting
+export function getSessionHoverGroupKey(session: Pick<SessionInstance, "baseCourse" | "instructor" | "room">): string {
+  return [session.baseCourse, session.instructor, session.room].join("|");
+}
