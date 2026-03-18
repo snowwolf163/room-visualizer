@@ -815,7 +815,6 @@ export default function RoomScheduleVisualizer({
 			hoveredGroupKey={hoveredGroupKey}
 			setHoveredGroupKey={setHoveredGroupKey}
 		    toggleTooltip={toggleTooltip}
-		    hideTooltip={hideTooltip}
 		  />
         </div>
       </div>

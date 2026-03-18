@@ -29,7 +29,6 @@ type ScheduleSvgProps = {
     e: MouseEvent<SVGGElement>,
     session: SessionInstance
   ) => void;
-  hideTooltip: () => void;
 };
 
 export default function ScheduleSvg({
@@ -50,7 +49,6 @@ export default function ScheduleSvg({
   hoveredGroupKey,
   setHoveredGroupKey,
   toggleTooltip,
-  hideTooltip,
 }: ScheduleSvgProps) {
   const svgTheme =
     theme === "dark"
@@ -175,7 +173,7 @@ export default function ScheduleSvg({
 			  const isHighlighted = hoveredGroupKey === null || hoveredGroupKey === groupKey;
 			  const isDirectHover = hoveredGroupKey === groupKey;
 
-			  const blockOpacity = hoveredGroupKey === null ? 0.85 : isHighlighted ? 1 : 0.18;
+			  const blockOpacity = hoveredGroupKey === null ? 0.85 : isHighlighted ? 1 : 0.28;
 			  const strokeColor =
 			    hoveredGroupKey !== null && isDirectHover
 				  ? theme === "dark"
@@ -189,7 +187,7 @@ export default function ScheduleSvg({
               return (
                 <g
                   key={idx}
-                  onMouseEnter={(e) => {
+                  onMouseEnter={() => {
 					setHoveredGroupKey(groupKey);
 				  }}
 				  onMouseLeave={() => {
@@ -208,7 +206,7 @@ export default function ScheduleSvg({
                     width={blockWidth}
                     height={blockHeight}
                     fill={blockFill}
-                    opacity={0.85}
+                    opacity={blockOpacity}
 					stroke={strokeColor}
 					strokeWidth={strokeWidth}
                   />
