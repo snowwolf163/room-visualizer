@@ -128,6 +128,9 @@ export default function GuidePage() {
             <li>
               Use the global theme toggle in the sidebar to switch between light mode and dark mode
             </li>
+			<li>
+              If no sessions match the selected room and status filter, a message will be shown instead of an empty graph
+            </li>
           </ul>
         </section>
 
