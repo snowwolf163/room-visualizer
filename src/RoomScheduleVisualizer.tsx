@@ -337,6 +337,21 @@ export default function RoomScheduleVisualizer() {
   const effectiveMin = Math.min(minHour, autoMinHour);
   const effectiveMax = Math.max(maxHour, autoMaxHour);
 
+  //Add theme state (dark mode)
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    const saved = localStorage.getItem("rsv-theme");
+    if (saved === "light" || saved === "dark") return saved;
+
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
+  //use effect for theme change
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    localStorage.setItem("rsv-theme", theme);
+  }, [theme]);
+
   // ---- Handlers ----
   function handleFile(file: File) {
     const reader = new FileReader();
@@ -543,90 +558,110 @@ export default function RoomScheduleVisualizer() {
 
 
   return (
-  <div className="h-full w-full flex flex-col">
-    <div className="shrink-0 p-4 space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Room Schedule Visualizer</h1>
+    <div className="min-h-screen w-full flex flex-col bg-background text-foreground">
+      <div className="shrink-0 p-4 space-y-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Room Schedule Visualizer
+          </h1>
 
-      <div className="flex gap-2">
-        <button
-          className={`px-4 py-2 rounded-md border text-sm ${
-            activeTab === "schedule" ? "bg-blue-600 text-white" : "bg-white"
-          }`}
-          onClick={() => setActiveTab("schedule")}
-        >
-          Schedule
-        </button>
-        <button
-          className={`px-4 py-2 rounded-md border text-sm ${
-            activeTab === "validation" ? "bg-blue-600 text-white" : "bg-white"
-          }`}
-          onClick={() => setActiveTab("validation")}
-        >
-          Validation
-        </button>
+          <button
+            className="px-4 py-2 rounded-md border text-sm bg-background text-foreground hover:bg-muted transition-colors"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </button>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            className={`px-4 py-2 rounded-md border text-sm transition-colors ${
+              activeTab === "schedule"
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-background text-foreground hover:bg-muted"
+            }`}
+            onClick={() => setActiveTab("schedule")}
+          >
+            Schedule
+          </button>
+          <button
+            className={`px-4 py-2 rounded-md border text-sm transition-colors ${
+              activeTab === "validation"
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-background text-foreground hover:bg-muted"
+            }`}
+            onClick={() => setActiveTab("validation")}
+          >
+            Validation
+          </button>
+        </div>
+
+        <UploadControls
+          fileRef={fileRef}
+          onFileChange={onFileChange}
+          onUploadClick={() => fileRef.current?.click()}
+          onDownloadPng={downloadPNG}
+          sessionsLength={sessions.length}
+          room={room}
+          rooms={rooms}
+          setRoom={setRoom}
+          minHour={minHour}
+          maxHour={maxHour}
+          setMinHour={setMinHour}
+          setMaxHour={setMaxHour}
+          autoMinHour={autoMinHour}
+          autoMaxHour={autoMaxHour}
+        />
+
+        {activeTab === "schedule" && (
+          <>
+            {visibleInstructors.length > 0 && (
+              <div className="flex flex-wrap gap-3 items-center">
+                <span className="text-sm text-muted-foreground">
+                  Instructors in this room:
+                </span>
+                {visibleInstructors.map((name) => (
+                  <div key={name} className="flex items-center gap-2 text-sm">
+                    <span
+                      className="inline-block w-3 h-3 rounded"
+                      style={{ background: colorByInstructor.get(name) }}
+                    />
+                    <span>{name || "Unknown"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!rows.length && (
+              <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                Upload your .xlsx file to begin, or download the sample file to see the correct format.
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              Tip: We auto-detect days like M, T, W, R (Thu), F, S, U and also parse
+              Th/Tu/Sa/Su. Schedules are rendered in a weekly Monday–Sunday layout
+              using valid schedule data, while the tooltip keeps the original term
+              date range.
+            </p>
+          </>
+        )}
+
+        {activeTab === "validation" && (
+          <ValidationPanel
+            errors={validationResults.errors}
+            infos={validationResults.infos}
+            detectedHeaders={detectedHeaders}
+          />
+        )}
       </div>
-
-      <UploadControls
-		fileRef={fileRef}
-		onFileChange={onFileChange}
-		onUploadClick={() => fileRef.current?.click()}
-		onDownloadPng={downloadPNG}
-		sessionsLength={sessions.length}
-		room={room}
-		rooms={rooms}
-		setRoom={setRoom}
-		minHour={minHour}
-		maxHour={maxHour}
-		setMinHour={setMinHour}
-		setMaxHour={setMaxHour}
-		autoMinHour={autoMinHour}
-		autoMaxHour={autoMaxHour}
-	  />
-
-      {activeTab === "schedule" && (
-        <>
-          {visibleInstructors.length > 0 && (
-            <div className="flex flex-wrap gap-3 items-center">
-              <span className="text-sm text-muted-foreground">Instructors in this room:</span>
-              {visibleInstructors.map(name => (
-                <div key={name} className="flex items-center gap-2 text-sm">
-                  <span
-                    className="inline-block w-3 h-3 rounded"
-                    style={{ background: colorByInstructor.get(name) }}
-                  />
-                  <span>{name || "Unknown"}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!rows.length && (
-            <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-2">
-              <CalendarIcon className="w-4 h-4" />
-              Upload your .xlsx file to begin, or download the sample file to see the correct format.
-            </div>
-          )}
-
-          <p className="text-xs text-muted-foreground">
-            Tip: We auto-detect days like M, T, W, R (Thu), F, S, U and also parse Th/Tu/Sa/Su. Schedules are rendered in a weekly Monday–Sunday layout using valid schedule data, while the tooltip keeps the original term date range.
-          </p>
-        </>
-      )}
-
-      {activeTab === "validation" && (
-		<ValidationPanel
-		  errors={validationResults.errors}
-		  infos={validationResults.infos}
-		  detectedHeaders={detectedHeaders}
-		/>
-	  )}
-    </div>
 
     {activeTab === "schedule" && (
       <div className="flex-1 min-h-0 px-4 pb-4">
         <div
 		  ref={graphContainerRef}
-		  className="h-full w-full overflow-auto rounded-2xl border bg-white shadow-sm"
+		  className="h-full w-full overflow-auto rounded-2xl border bg-card text-card-foreground shadow-sm"
 		>
           <ScheduleSvg
 		    width={width}
@@ -642,6 +677,7 @@ export default function RoomScheduleVisualizer() {
 		    lanesByDate={lanesByDate}
 		    yFor={yFor}
 		    colorByInstructor={colorByInstructor}
+			theme={theme}
 		    showTooltipWithDelay={showTooltipWithDelay}
 		    hideTooltip={hideTooltip}
 		    moveTooltip={moveTooltip}
@@ -653,7 +689,7 @@ export default function RoomScheduleVisualizer() {
     {activeTab === "schedule" && tooltip.visible && tooltip.session && (
       <div
 		ref={tooltipRef}
-		className="fixed z-50 max-w-sm rounded-lg border bg-white p-4 shadow-xl text-sm"
+		className="fixed z-50 max-w-sm rounded-lg border bg-popover text-popover-foreground p-4 shadow-xl text-sm"
 		style={{
 		  left: tooltip.x,
 		  top: tooltip.y,

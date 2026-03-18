@@ -2,7 +2,13 @@ import { Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 
 type UploadControlsProps = {
@@ -39,7 +45,7 @@ export default function UploadControls({
   autoMaxHour,
 }: UploadControlsProps) {
   return (
-    <Card>
+    <Card className="bg-card text-card-foreground">
       <CardContent className="p-4 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <Input
@@ -51,13 +57,14 @@ export default function UploadControls({
           />
 
           <Button variant="secondary" size="sm" onClick={onUploadClick} className="gap-2">
-            <Upload className="w-4 h-4" /> Upload .xlsx
+            <Upload className="w-4 h-4" />
+            Upload .xlsx
           </Button>
 
           <a
             href={`${import.meta.env.BASE_URL}sample-room-visualizer.xlsx`}
             download
-            className="inline-flex items-center rounded-md border px-3 py-2 text-sm hover:bg-muted"
+            className="inline-flex items-center rounded-md border bg-background px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
           >
             <Download className="w-4 h-4 mr-2" />
             Download Sample File
@@ -71,7 +78,8 @@ export default function UploadControls({
               disabled={!sessionsLength}
               className="gap-2"
             >
-              <Download className="w-4 h-4" /> Export PNG
+              <Download className="w-4 h-4" />
+              Export PNG
             </Button>
           </div>
         </div>
@@ -95,7 +103,9 @@ export default function UploadControls({
 
           <div className="flex items-center gap-3">
             <div className="w-48">
-              <label className="text-sm text-muted-foreground">Visible time: start (hour)</label>
+              <label className="text-sm text-muted-foreground">
+                Visible time: start (hour)
+              </label>
               <Slider
                 min={0}
                 max={23}
@@ -103,11 +113,15 @@ export default function UploadControls({
                 value={[minHour]}
                 onValueChange={(v) => setMinHour(v[0])}
               />
-              <div className="text-xs">Auto min: {autoMinHour}:00</div>
+              <div className="text-xs text-muted-foreground">
+                Auto min: {autoMinHour}:00
+              </div>
             </div>
 
             <div className="w-48">
-              <label className="text-sm text-muted-foreground">Visible time: end (hour)</label>
+              <label className="text-sm text-muted-foreground">
+                Visible time: end (hour)
+              </label>
               <Slider
                 min={1}
                 max={24}
@@ -115,7 +129,9 @@ export default function UploadControls({
                 value={[maxHour]}
                 onValueChange={(v) => setMaxHour(v[0])}
               />
-              <div className="text-xs">Auto max: {autoMaxHour}:00</div>
+              <div className="text-xs text-muted-foreground">
+                Auto max: {autoMaxHour}:00
+              </div>
             </div>
           </div>
         </div>
