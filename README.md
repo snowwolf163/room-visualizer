@@ -127,7 +127,8 @@ serve -s dist -l 5173
 ### Option 2 — From source
 ```bash
 npm install
-npm run dev```
+npm run dev
+```
 - Open: http://localhost:5173
 
 ## 📌 Notes
