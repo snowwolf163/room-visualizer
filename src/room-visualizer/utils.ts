@@ -122,7 +122,7 @@ export function timeRangesOverlap(
   return startA < endB && startB < endA;
 }
 
-export const WEEKDAY_COLUMNS = ["M", "T", "W", "R", "F", "S", "U"] as const;
+export const WEEKDAY_COLUMNS = ["U", "M", "T", "W", "R", "F", "S"] as const;
 
 export const WEEKDAY_LABELS: Record<string, string> = {
   M: "Mon",
