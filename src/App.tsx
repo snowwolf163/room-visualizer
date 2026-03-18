@@ -9,6 +9,8 @@ import type { Row } from "./room-visualizer/types";
 
 type ThemeMode = "light" | "dark";
 
+type StatusFilter = "All" | "Scheduled" | "Unassigned";
+
 function Sidebar({
   theme,
   setTheme,
@@ -123,7 +125,8 @@ function AppShell() {
   const [maxHour, setMaxHour] = useState(22); //Default time 22 or 10PM
   const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
   const [formatErrors, setFormatErrors] = useState<string[]>([]);
-
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("All"); //Status filter
+  
   return (
     <div className="h-screen w-full bg-background text-foreground">
       <div className="h-screen overflow-hidden">
@@ -168,6 +171,8 @@ function AppShell() {
 				  setDetectedHeaders={setDetectedHeaders}
 				  formatErrors={formatErrors}
 				  setFormatErrors={setFormatErrors}
+				  statusFilter={statusFilter}
+				  setStatusFilter={setStatusFilter}
 				/>
 			  }
 			/>

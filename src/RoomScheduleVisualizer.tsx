@@ -44,6 +44,8 @@ import UploadControls from "./room-visualizer/UploadControls";
  * 12. Term
  */
 
+type StatusFilter = "All" | "Scheduled" | "Unassigned";
+
 type RoomScheduleVisualizerProps = {
   theme: "light" | "dark";
   rows: Row[];
@@ -58,6 +60,8 @@ type RoomScheduleVisualizerProps = {
   setDetectedHeaders: React.Dispatch<React.SetStateAction<string[]>>;
   formatErrors: string[];
   setFormatErrors: React.Dispatch<React.SetStateAction<string[]>>;
+  statusFilter: StatusFilter;
+  setStatusFilter: React.Dispatch<React.SetStateAction<StatusFilter>>;
 };
 
 export default function RoomScheduleVisualizer({
@@ -74,6 +78,8 @@ export default function RoomScheduleVisualizer({
   setDetectedHeaders,
   formatErrors,
   setFormatErrors,
+  statusFilter,
+  setStatusFilter,
 }: RoomScheduleVisualizerProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null); //tooltip reference
@@ -182,11 +188,18 @@ export default function RoomScheduleVisualizer({
     return out;
   }, [rows]);
 
+  //Create session blocks on the graph
   const sessions: SessionInstance[] = useMemo(() => {
     const out: SessionInstance[] = [];
 
     for (const r of rows) {
-      if (!room || r.room === room) {
+	  const matchesRoom = !room || r.room === room;
+	  const matchesStatus =
+		statusFilter === "All" ||
+		(statusFilter === "Scheduled" && r.status === "Scheduled") ||
+		(statusFilter === "Unassigned" && r.status === "Unassigned");
+		
+      if (matchesRoom && matchesStatus) {
         const weeklyDates = generateWeeklyOccurrences(r);
 
         for (const { dayCode, date } of weeklyDates) {
@@ -261,7 +274,7 @@ export default function RoomScheduleVisualizer({
     );
 
     return deduped;
-  }, [rows, room]);
+  }, [rows, room, statusFilter]);
 
   const visibleInstructors = useMemo(
     () => distinct(sessions.map(s => s.instructor).filter(Boolean)),
@@ -737,6 +750,8 @@ export default function RoomScheduleVisualizer({
           setMaxHour={setMaxHour}
           autoMinHour={autoMinHour}
           autoMaxHour={autoMaxHour}
+		  statusFilter={statusFilter}
+		  setStatusFilter={setStatusFilter}
         />
 
         {activeTab === "schedule" && (

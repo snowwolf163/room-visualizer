@@ -26,6 +26,8 @@ type UploadControlsProps = {
   setMaxHour: (value: number) => void;
   autoMinHour: number;
   autoMaxHour: number;
+  statusFilter: "All" | "Scheduled" | "Unassigned";
+  setStatusFilter: (value: "All" | "Scheduled" | "Unassigned") => void;
 };
 
 export default function UploadControls({
@@ -43,6 +45,8 @@ export default function UploadControls({
   setMaxHour,
   autoMinHour,
   autoMaxHour,
+  statusFilter,
+  setStatusFilter,
 }: UploadControlsProps) {
   return (
     <Card className="bg-card text-card-foreground">
@@ -100,6 +104,20 @@ export default function UploadControls({
               </SelectContent>
             </Select>
           </div>
+		  
+		  <div className="w-56">
+		    <label className="text-sm text-muted-foreground">Status</label>
+		    <Select value={statusFilter} onValueChange={setStatusFilter}>
+			  <SelectTrigger>
+			    <SelectValue placeholder="Filter status" />
+			  </SelectTrigger>
+			  <SelectContent>
+			    <SelectItem value="All">All</SelectItem>
+			    <SelectItem value="Scheduled">Scheduled</SelectItem>
+			    <SelectItem value="Unassigned">Unassigned</SelectItem>
+			  </SelectContent>
+		    </Select>
+		  </div>
 
           <div className="flex items-center gap-3">
             <div className="w-48">
