@@ -43,16 +43,38 @@ import UploadControls from "./room-visualizer/UploadControls";
  * 11. Status
  * 12. Term
  */
- 
+
 type RoomScheduleVisualizerProps = {
   theme: "light" | "dark";
+  rows: Row[];
+  setRows: React.Dispatch<React.SetStateAction<Row[]>>;
+  room: string;
+  setRoom: React.Dispatch<React.SetStateAction<string>>;
+  minHour: number;
+  maxHour: number;
+  setMinHour: React.Dispatch<React.SetStateAction<number>>;
+  setMaxHour: React.Dispatch<React.SetStateAction<number>>;
+  detectedHeaders: string[];
+  setDetectedHeaders: React.Dispatch<React.SetStateAction<string[]>>;
+  formatErrors: string[];
+  setFormatErrors: React.Dispatch<React.SetStateAction<string[]>>;
 };
 
-export default function RoomScheduleVisualizer({ theme }: RoomScheduleVisualizerProps) {
-  const [rows, setRows] = useState<Row[]>([]);
-  const [room, setRoom] = useState<string>("");
-  const [minHour, setMinHour] = useState<number>(7);  // default 7:00
-  const [maxHour, setMaxHour] = useState<number>(22); // default 22:00
+export default function RoomScheduleVisualizer({
+  theme,
+  rows,
+  setRows,
+  room,
+  setRoom,
+  minHour,
+  maxHour,
+  setMinHour,
+  setMaxHour,
+  detectedHeaders,
+  setDetectedHeaders,
+  formatErrors,
+  setFormatErrors,
+}: RoomScheduleVisualizerProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null); //tooltip reference
   //Container ref 
@@ -61,8 +83,6 @@ export default function RoomScheduleVisualizer({ theme }: RoomScheduleVisualizer
   
   //Checking validation const
   const [activeTab, setActiveTab] = useState<"schedule" | "validation">("schedule");
-  const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
-  const [formatErrors, setFormatErrors] = useState<string[]>([]);
 
   //Tooltip const
   const [tooltip, setTooltip] = useState<{

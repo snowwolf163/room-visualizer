@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import RoomScheduleVisualizer from "./RoomScheduleVisualizer";
 import CreditPage from "./CreditPage";
 import GuidePage from "./GuidePage";
+import type { Row } from "./room-visualizer/types";
 
 type ThemeMode = "light" | "dark";
 
@@ -116,6 +117,13 @@ function AppShell() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  const [rows, setRows] = useState<Row[]>([]);
+  const [room, setRoom] = useState("");
+  const [minHour, setMinHour] = useState(7); //Default time 7AM
+  const [maxHour, setMaxHour] = useState(22); //Default time 22 or 10PM
+  const [detectedHeaders, setDetectedHeaders] = useState<string[]>([]);
+  const [formatErrors, setFormatErrors] = useState<string[]>([]);
+
   return (
     <div className="h-screen w-full bg-background text-foreground">
       <div className="h-screen overflow-hidden">
@@ -143,7 +151,26 @@ function AppShell() {
           </div>
 
           <Routes>
-            <Route path="/" element={<RoomScheduleVisualizer theme={theme} />} />
+            <Route
+			  path="/"
+			  element={
+				<RoomScheduleVisualizer
+				  theme={theme}
+				  rows={rows}
+				  setRows={setRows}
+				  room={room}
+				  setRoom={setRoom}
+				  minHour={minHour}
+				  maxHour={maxHour}
+				  setMinHour={setMinHour}
+				  setMaxHour={setMaxHour}
+				  detectedHeaders={detectedHeaders}
+				  setDetectedHeaders={setDetectedHeaders}
+				  formatErrors={formatErrors}
+				  setFormatErrors={setFormatErrors}
+				/>
+			  }
+			/>
             <Route path="/guide" element={<GuidePage />} />
             <Route path="/credits" element={<CreditPage />} />
           </Routes>
