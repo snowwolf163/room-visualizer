@@ -436,6 +436,14 @@ export default function RoomScheduleVisualizer({
     if (file) handleFile(file);
   }
 
+  //Sanitize room names
+  function sanitizeFilename(str: string) {
+	return str
+	  .trim()
+	  .replace(/\s+/g, "-")       // spaces → dash
+	  .replace(/[^\w-]/g, "");    // remove special chars
+  }
+
 	function downloadPNG() {
 	  const svg = document.getElementById("schedule-svg") as SVGSVGElement | null;
 	  if (!svg) return;
@@ -500,15 +508,33 @@ export default function RoomScheduleVisualizer({
 	  let currentY = legendPadding + 6;
 
 	  if (room) {
-		const roomText = document.createElementNS(NS, "text");
-		roomText.setAttribute("x", String(legendPadding));
-		roomText.setAttribute("y", String(currentY + 14));
-		roomText.setAttribute("font-size", "16");
-		roomText.setAttribute("font-weight", "600");
-		roomText.setAttribute("fill", exportText);
-		roomText.textContent = `Room: ${room}`;
-		legendGroup.appendChild(roomText);
-		currentY += roomTitleH;
+	    const titleMain = `Room: ${room}`;
+	    const titleStatus = statusFilter || "All";
+
+	    const roomText = document.createElementNS(NS, "text");
+	    roomText.setAttribute("x", String(legendPadding));
+	    roomText.setAttribute("y", String(currentY + 14));
+	    roomText.setAttribute("font-size", "16");
+	    roomText.setAttribute("font-weight", "600");
+	    roomText.setAttribute("fill", exportText);
+
+	    // Main text (Room)
+	    const tspanMain = document.createElementNS(NS, "tspan");
+	    tspanMain.textContent = titleMain;
+
+	    // Muted status
+	    const tspanStatus = document.createElementNS(NS, "tspan");
+	    tspanStatus.textContent = ` — ${titleStatus}`;
+	    tspanStatus.setAttribute(
+		  "fill",
+	  	  theme === "dark" ? "#a1a1aa" : "#6b7280"
+	    );
+
+	    roomText.appendChild(tspanMain);
+  	    roomText.appendChild(tspanStatus);
+
+	    legendGroup.appendChild(roomText);
+	    currentY += roomTitleH;
 	  }
 
 	  const usableWidth = svgWidth - legendPadding * 2;
@@ -568,7 +594,10 @@ export default function RoomScheduleVisualizer({
 
 		const a = document.createElement("a");
 		a.href = canvas.toDataURL("image/png");
-		a.download = `room-${room || "schedule"}.png`;
+		const safeRoom = sanitizeFilename(room || "schedule");
+		const safeStatus = sanitizeFilename(statusFilter || "All");
+
+		a.download = `room-${safeRoom}-${safeStatus}.png`;
 		a.click();
 
 		URL.revokeObjectURL(url);
